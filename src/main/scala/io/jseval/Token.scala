@@ -17,6 +17,9 @@ enum Operator(val lexeme: String) extends Token:
   case RightParen extends Operator(")")
   case LeftBrace extends Operator("{")
   case RightBrace extends Operator("}")
+  case LeftBracket extends Operator("[")
+  case RightBracket extends Operator("]")
+
   case Comma extends Operator(",")
   case Dot extends Operator(".")
   case Minus extends Operator("-")
@@ -38,18 +41,30 @@ enum Operator(val lexeme: String) extends Token:
 
 enum Keyword(val lexeme: String) extends Token:
 
+  case True extends Keyword("true")
+  case False extends Keyword("false")
+  case Null extends Keyword("NULL")
+
   case Select extends Keyword("SELECT")
   case Where extends Keyword("WHERE")
   case From extends Keyword("FROM")
   case Contains extends Keyword("CONTAINS")
+  case And extends Keyword("AND")
+  case Or extends Keyword("OR")
 
   case Create extends Keyword("CREATE")
   case Table extends Keyword("TABLE")
-  case Values extends Keyword("VALUES")
+  case Extract extends Keyword("EXTRACT")
+  case Default extends Keyword("DEFAULT")
 
   // Type
-  case List extends Keyword("LIST")
-  case String extends Keyword("STR")
+  case ListToken extends Keyword("LIST")
+  case String extends Keyword("STRING")
   case Int extends Keyword("INT")
   case Date extends Keyword("DATE")
   case Datetime extends Keyword("DATETIME")
+  case Boolean extends Keyword("BOOLEAN")
+
+enum Comment(val lexeme: String) extends Token:
+  case SingleLine(override val lexeme: String) extends Comment(lexeme)
+  case Block(override val lexeme: String) extends Comment(lexeme)

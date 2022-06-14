@@ -1,7 +1,8 @@
 CREATE TABLE users (
-    phoneTypes LIST[STRING] VALUES("$.phoneNumbers[:1].type") ,
-    userName STRING VALUES("$.firstName") DEFAULT "firstName", 
-    amount INT VALUES("$.amount") DEFAULT 0;
+    phoneTypes LIST [STRING] EXTRACT ("$.phoneNumbers[:1].type") ,
+    userName STRING EXTRACT ("$.firstName") DEFAULT "firstName", 
+    amount INT EXTRACT ("$.amount") DEFAULT 0;
+    /* comment */
 );
 
 
