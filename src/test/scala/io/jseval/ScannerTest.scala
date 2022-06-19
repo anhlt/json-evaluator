@@ -117,4 +117,26 @@ CREATE TABLE users (
     assertEquals(Scanner.parse(str), Right(expected))
   }
 
+  test("Select_as.sql") {
+    val str = """
+
+    SELECT (2 + 4) AS result FROM table
+    """
+    val expected = List(
+      Keyword.Select,
+      Operator.LeftParen,
+      Literal.Number("2"),
+      Operator.Plus,
+      Literal.Number("4"),
+      Operator.RightParen,
+      Keyword.As,
+      Literal.Identifier("result"),
+      Keyword.From,
+      Literal.Identifier("table")
+    )
+
+    assertEquals(Scanner.parse(str), Right(expected))
+
+  }
+
 }

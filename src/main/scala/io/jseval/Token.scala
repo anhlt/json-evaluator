@@ -1,7 +1,5 @@
 package io.jseval
 
-import com.fasterxml.jackson.module.scala.deser.overrides
-
 sealed trait Token:
   val lexeme: String
 
@@ -51,6 +49,7 @@ enum Keyword(val lexeme: String) extends Token:
   case Contains extends Keyword("CONTAINS")
   case And extends Keyword("AND")
   case Or extends Keyword("OR")
+  case As extends Keyword("AS")
 
   case Create extends Keyword("CREATE")
   case Table extends Keyword("TABLE")

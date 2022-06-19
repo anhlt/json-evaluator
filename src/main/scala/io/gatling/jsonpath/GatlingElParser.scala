@@ -88,7 +88,7 @@ object GatlingElParser extends RegexParsers {
     }
 
   private def arrayRandomAccess: Parser[Option[ArrayRandomAccess]] =
-    rep1("," ~> number).? ^^ (_.map(ArrayRandomAccess))
+    rep1("," ~> number).? ^^ (_.map(ArrayRandomAccess.apply))
 
   private def arraySlicePartial: Parser[ArrayAccessor] =
     number ~ arraySlice ^^ { case i ~ as =>
@@ -166,7 +166,7 @@ object GatlingElParser extends RegexParsers {
     }
 
   private def recursiveSubscriptFilter: Parser[RecursiveFilterToken] =
-    (("..*" | "..") ~> subscriptFilter) ^^ RecursiveFilterToken
+    (("..*" | "..") ~> subscriptFilter) ^^ RecursiveFilterToken.apply
 
   private[jsonpath] def subscriptFilter: Parser[FilterToken] =
     "[?(" ~> booleanExpression <~ ")]"
@@ -180,11 +180,11 @@ object GatlingElParser extends RegexParsers {
     }
 
   private[jsonpath] def dotField: Parser[FieldAccessor] =
-    "." ~> field ^^ Field
+    "." ~> field ^^ Field.apply
 
   // TODO recursive with `subscriptField`
   private def recursiveField: Parser[FieldAccessor] =
-    ".." ~> field ^^ RecursiveField
+    ".." ~> field ^^ RecursiveField.apply
 
   private def anyChild: Parser[FieldAccessor] = (".*" | "['*']" | """["*"]""") ^^^ AnyField
 

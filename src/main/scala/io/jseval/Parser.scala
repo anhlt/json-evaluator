@@ -3,8 +3,6 @@ package io.jseval
 import cats._
 import cats.implicits._
 import Expression._
-import cats.effect.kernel.syntax.resource
-import io.jseval.Literal
 import cats.instances._
 
 object Parser {
@@ -19,21 +17,15 @@ object Parser {
 
   def parseExpression[F[_]](tokens: List[Token])(implicit
       ae: ApplicativeError[F, Error]
-  ): F[Expr[Any]] = ???
+  ): F[Expr] = ???
 
-  def parse(ts: List[Token]): ExprParser[LiteralType] = expression(ts)
+  def parse(ts: List[Token]): ExprParser = expression(ts)
 
-  type ExprParser[T] = Either[Error, (Expr[T], List[Token])]
+  def expression: List[Token] => ExprParser = or
 
-  type BinaryOp[T] = Token => Option[(Expr[T], Expr[T]) => Expr[T]]
+  def or: List[Token] => ExprParser = binary(orOp, and)
 
-  type UnaryOp[T] = Token => Option[Expr[T] => Expr[T]]
-
-  def expression: List[Token] => ExprParser[LiteralType] = or
-
-  def or: List[Token] => ExprParser[LiteralType] = binary(orOp, and)
-
-  def and: List[Token] => ExprParser[LiteralType] = binary(andOp, equality)
+  def and: List[Token] => ExprParser = binary(andOp, equality)
 
   // Parse binary expressions that share this grammar
   // ```
@@ -41,19 +33,19 @@ object Parser {
   // ```
   // Consider "equality" expression as an example. Its direct descendant is "comparison"
   // and its OPERATOR is ("==" | "!=").
-  def binary[T](
-      op: BinaryOp[T],
-      descendant: List[Token] => ExprParser[T]
+  def binary(
+      op: BinaryOp,
+      descendant: List[Token] => ExprParser
   )(
       tokens: List[Token]
-  ): ExprParser[T] =
+  ): ExprParser =
 
-    def matchOp(ts: List[Token], l: Expr[T]): ExprParser[T] =
+    def matchOp(ts: List[Token], l: Expr): ExprParser =
       ts match
         case token :: rest =>
           op(token) match
             case Some(fn) =>
-              descendant(rest).flatMap((r: Expr[T], rmn: List[Token]) =>
+              descendant(rest).flatMap((r: Expr, rmn: List[Token]) =>
                 matchOp(rmn, fn(l, r))
               )
             case None => Right(l, ts)
@@ -61,15 +53,15 @@ object Parser {
 
     descendant(tokens).flatMap((expr, rest) => matchOp(rest, expr))
 
-  def equality: List[Token] => ExprParser[LiteralType] =
+  def equality: List[Token] => ExprParser =
     binary(equalityOp, comparison)
-  def comparison: List[Token] => ExprParser[LiteralType] =
+  def comparison: List[Token] => ExprParser =
     binary(comparisonOp, term)
-  def term: List[Token] => ExprParser[LiteralType] = binary(termOp, factor)
-  def factor: List[Token] => ExprParser[LiteralType] =
+  def term: List[Token] => ExprParser = binary(termOp, factor)
+  def factor: List[Token] => ExprParser =
     binary(factorOp, unary)
 
-  def unary(tokens: List[Token]): ExprParser[LiteralType] =
+  def unary(tokens: List[Token]): ExprParser =
     tokens match
       case token :: rest =>
         unaryOp(token) match
@@ -78,14 +70,14 @@ object Parser {
           case None => primary(tokens)
       case _ => primary(tokens)
 
-  def primary(tokens: List[Token]): ExprParser[LiteralType] =
+  def primary(tokens: List[Token]): ExprParser =
     tokens match
       case Literal.Number(l) :: rest =>
-        Right(Expression.Literal(l.toDouble), rest)
-      case Literal.Str(l) :: rest => Right(Expression.Literal(l), rest)
-      case Keyword.True :: rest   => Right(Expression.Literal(true), rest)
-      case Keyword.False :: rest  => Right(Expression.Literal(false), rest)
-      case Keyword.Null :: rest   => Right(Expression.Literal(null), rest)
+        Right(Expression.LiteralExpr(l.toDouble), rest)
+      case Literal.Str(l) :: rest => Right(Expression.LiteralExpr(l), rest)
+      case Keyword.True :: rest   => Right(Expression.LiteralExpr(true), rest)
+      case Keyword.False :: rest  => Right(Expression.LiteralExpr(false), rest)
+      case Keyword.Null :: rest   => Right(Expression.LiteralExpr(null), rest)
       case Literal.Identifier(name) :: rest =>
         Right(Expression.Variable(Literal.Identifier(name)), rest)
       case Operator.LeftParen :: rest => parenBody(rest)
@@ -94,43 +86,60 @@ object Parser {
   // Parse the body within a pair of parentheses (the part after "(")
   def parenBody(
       tokens: List[Token]
-  ): ExprParser[LiteralType] = expression(tokens).flatMap((expr, rest) =>
+  ): ExprParser = expression(tokens).flatMap((expr, rest) =>
     rest match
       case Operator.RightParen :: rmn => Right(Expression.Grouping(expr), rmn)
       case _                          => Left(Error.ExpectClosing(rest))
   )
 
-  val orOp: BinaryOp[LiteralType] =
+  def consume(
+      expect: Token,
+      tokens: List[Token]
+  ): Either[Error, (Token, List[Token])] =
+    tokens.headOption match {
+      case Some(expect) => Right(expect, tokens.tail)
+      case _            => Left(Error.ExpectExpression(tokens))
+    }
+
+  type StmtParser = Either[Error, (Stmt, List[Token])]
+
+  type ExprParser = Either[Error, (Expr, List[Token])]
+
+  type BinaryOp = Token => Option[(Expr, Expr) => Expr]
+
+  type UnaryOp = Token => Option[Expr => Expr]
+
+  val orOp: BinaryOp =
     case Keyword.Or => Some(Expression.Or.apply)
     case _          => None
 
-  val andOp: BinaryOp[LiteralType] =
+  val andOp: BinaryOp =
     case Keyword.And => Some(Expression.And.apply)
     case _           => None
 
-  val equalityOp: BinaryOp[LiteralType] =
+  val equalityOp: BinaryOp =
     case Operator.EqualEqual => Some(Expression.Equal.apply)
     case Operator.BangEqual  => Some(Expression.NotEqual.apply)
     case _                   => None
 
-  val comparisonOp: BinaryOp[LiteralType] =
+  val comparisonOp: BinaryOp =
     case Operator.Less         => Some(Expression.Less.apply)
     case Operator.LessEqual    => Some(Expression.LessEqual.apply)
     case Operator.Greater      => Some(Expression.Greater.apply)
     case Operator.GreaterEqual => Some(Expression.GreaterEqual.apply)
     case _                     => None
 
-  val termOp: BinaryOp[LiteralType] =
+  val termOp: BinaryOp =
     case Operator.Plus  => Some(Expression.Add.apply)
     case Operator.Minus => Some(Expression.Subtract.apply)
     case _              => None
 
-  val factorOp: BinaryOp[LiteralType] =
+  val factorOp: BinaryOp =
     case Operator.Star  => Some(Expression.Multiply.apply)
     case Operator.Slash => Some(Expression.Divide.apply)
     case _              => None
 
-  val unaryOp: UnaryOp[LiteralType] =
+  val unaryOp: UnaryOp =
     case Operator.Minus => Some(Expression.Negate.apply)
     case Operator.Bang  => Some(Expression.Not.apply)
     case _              => None

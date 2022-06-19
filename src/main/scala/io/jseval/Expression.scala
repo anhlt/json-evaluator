@@ -3,111 +3,43 @@ package io.jseval
 type LiteralType = Double | Boolean | String | Null
 
 object Expression {
-  sealed trait Expr[T] {
-    val value: T
-  }
+  sealed trait Expr
 
-  case class Assign[U](name: Token, rawvalue: Expr[U]) extends Expr[U] {
-    val value = rawvalue.value
-  }
+  case class Assign(name: Token, rawvalue: Expr) extends Expr
 
-  case class Add[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
+  case class Add(left: Expr, right: Expr) extends Expr
 
-    val value: Double =
-      left.value.asInstanceOf[Double] + right.value.asInstanceOf[Double]
-  }
+  case class Subtract(left: Expr, right: Expr) extends Expr
 
-  case class Subtract[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
+  case class Multiply(left: Expr, right: Expr) extends Expr
 
-    val value: Double =
-      left.value.asInstanceOf[Double] - right.value.asInstanceOf[Double]
-  }
+  case class Divide(left: Expr, right: Expr) extends Expr
 
-  case class Multiply[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
+  case class Greater(left: Expr, right: Expr) extends Expr
 
-    val value: Double =
-      left.value.asInstanceOf[Double] * right.value.asInstanceOf[Double]
-  }
+  case class GreaterEqual(left: Expr, right: Expr) extends Expr
 
-  case class Divide[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
+  case class Less(left: Expr, right: Expr) extends Expr
 
-    val value: Double =
-      left.value.asInstanceOf[Double] - right.value.asInstanceOf[Double]
-  }
+  case class LessEqual(left: Expr, right: Expr) extends Expr
 
-  case class Greater[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
-    val value: Boolean =
-      left.value.asInstanceOf[Double] > right.value.asInstanceOf[Double]
-  }
+  case class Equal(left: Expr, right: Expr) extends Expr
 
-  case class GreaterEqual[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
-    val value: Boolean =
-      left.value.asInstanceOf[Double] >= right.value.asInstanceOf[Double]
-  }
-
-  case class Less[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
-    val value: Boolean =
-      left.value.asInstanceOf[Double] < right.value.asInstanceOf[Double]
-  }
-
-  case class LessEqual[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
-    val value: Boolean =
-      left.value.asInstanceOf[Double] <= right.value.asInstanceOf[Double]
-  }
-
-  case class Equal[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
-    val value: Boolean =
-      left.value.asInstanceOf[Double] == right.value.asInstanceOf[Double]
-  }
-
-  case class NotEqual[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
-    val value: Boolean =
-      left.value.asInstanceOf[Double] != right.value.asInstanceOf[Double]
-  }
+  case class NotEqual(left: Expr, right: Expr) extends Expr
 
   // Logic
-  case class And[U, V](left: Expr[U], right: Expr[V])
-      extends Expr[LiteralType] {
+  case class And(left: Expr, right: Expr) extends Expr
 
-    val value =
-      left.value.asInstanceOf[Boolean] && right.value.asInstanceOf[Boolean]
-  }
+  case class Or(left: Expr, right: Expr) extends Expr
 
-  case class Or[U, V](left: Expr[U], right: Expr[V]) extends Expr[LiteralType] {
+  case class Negate(expr: Expr) extends Expr
 
-    val value: Boolean =
-      left.value.asInstanceOf[Boolean] || right.value.asInstanceOf[Boolean]
-  }
+  case class Not(expr: Expr) extends Expr
 
-  case class Negate[U >: LiteralType](expr: Expr[U]) extends Expr[U] {
-    val value: LiteralType =
-      -expr.value.asInstanceOf[Double]
-  }
+  case class LiteralExpr(value: LiteralType) extends Expr
 
-  case class Not[U >: LiteralType](expr: Expr[U]) extends Expr[U] {
-    val value: LiteralType = !expr.value.asInstanceOf[Boolean]
-  }
+  case class Grouping(expr: Expr) extends Expr
 
-  case class Literal(rawValue: LiteralType) extends Expr[LiteralType] {
-    val value: LiteralType = rawValue
-  }
-
-  case class Grouping[U](expr: Expr[U]) extends Expr[U] {
-    val value = expr.value
-  }
-
-  case class Variable[U](name: Token) extends Expr[U] {
-    val value = 123.asInstanceOf[U]
-  }
+  case class Variable(name: Token) extends Expr
 
 }

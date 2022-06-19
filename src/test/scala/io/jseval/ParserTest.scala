@@ -16,14 +16,14 @@ class ParserTest extends munit.FunSuite:
 
   test(s"expression primary number") {
     val ts = List(Literal.Number("42"))
-    val expected = Expression.Literal(42)
+    val expected = Expression.LiteralExpr(42)
 
     assertEquals(parse(ts), Right(expected, Nil))
   }
 
   test("expression primary string") {
     val ts = List(Literal.Str("you rox!"))
-    val want = Expr.Literal("you rox!")
+    val want = Expr.LiteralExpr("you rox!")
     assertEquals(parse(ts), Right(want, Nil))
 
   }
@@ -71,26 +71,26 @@ class ParserTest extends munit.FunSuite:
 
     val want = Expr.Or(
       left = Expr.Greater(
-        left = Expr.Literal(
-          rawValue = 4.0
+        left = Expr.LiteralExpr(
+          4.0
         ),
-        right = Expr.Literal(
-          rawValue = 3.0
+        right = Expr.LiteralExpr(
+          3.0
         )
       ),
       right = Expr.And(
         left = Expr.Grouping(
           expr = Expr.Less(
             left = Expr.Add(
-              left = Expr.Literal(
-                rawValue = 5.0
+              left = Expr.LiteralExpr(
+                5.0
               ),
-              right = Expr.Literal(
-                rawValue = 6.0
+              right = Expr.LiteralExpr(
+                6.0
               )
             ),
-            right = Expr.Literal(
-              rawValue = 4.0
+            right = Expr.LiteralExpr(
+              4.0
             )
           )
         ),
@@ -98,16 +98,16 @@ class ParserTest extends munit.FunSuite:
           expr = Expr.Greater(
             left = Expr.Grouping(
               expr = Expr.Add(
-                left = Expr.Literal(
-                  rawValue = 7.0
+                left = Expr.LiteralExpr(
+                  7.0
                 ),
-                right = Expr.Literal(
-                  rawValue = 8.0
+                right = Expr.LiteralExpr(
+                  8.0
                 )
               )
             ),
-            right = Expr.Literal(
-              rawValue = 3.0
+            right = Expr.LiteralExpr(
+              3.0
             )
           )
         )
