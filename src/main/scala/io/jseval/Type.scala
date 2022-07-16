@@ -1,11 +1,11 @@
 package io.jseval
 
-enum Type:
+enum SupportType:
   case DoubleType
   case StringType
 
 sealed trait Declaration {
-  val typeValue: Type
+  val typeValue: SupportType
 }
 
-case class VariableDeclaration(typeValue: Type) extends Declaration
+case class VariableDeclaration(typeValue: SupportType) extends Declaration

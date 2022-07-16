@@ -51,7 +51,7 @@ object AST {
 
   // JsonPath Filter AST //////////////////////////////////////////////
 
-  final case object CurrentNode extends PathToken
+  case object CurrentNode extends PathToken
   sealed trait FilterValue extends AstToken
 
   object FilterDirectValue {
