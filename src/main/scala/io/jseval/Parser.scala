@@ -3,6 +3,8 @@ package io.jseval
 import cats._
 import cats.implicits._
 import Expression._
+import io.jseval.Expression
+import io.jseval.Expression.BuildinFn
 import cats.instances._
 
 object Parser {
@@ -110,38 +112,55 @@ object Parser {
   type UnaryOp = Token => Option[Expr => Expr]
 
   val orOp: BinaryOp =
-    case Keyword.Or => Some(Expression.Or.apply)
-    case _          => None
+    case Keyword.Or =>
+      Some((l, r) => Buildin(BuildinFn.Logical(BuildinFn.Or, l, r)))
+    case _ => None
 
   val andOp: BinaryOp =
-    case Keyword.And => Some(Expression.And.apply)
-    case _           => None
+    case Keyword.And =>
+      Some((l, r) => Buildin(BuildinFn.Logical(BuildinFn.And, l, r)))
+    case _ => None
 
   val equalityOp: BinaryOp =
-    case Operator.EqualEqual => Some(Expression.Equal.apply)
-    case Operator.BangEqual  => Some(Expression.NotEqual.apply)
-    case _                   => None
+    case Operator.EqualEqual =>
+      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Equal, l, r)))
+    case Operator.BangEqual =>
+      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.NotEqual, l, r)))
+    case _ => None
 
   val comparisonOp: BinaryOp =
-    case Operator.Less         => Some(Expression.Less.apply)
-    case Operator.LessEqual    => Some(Expression.LessEqual.apply)
-    case Operator.Greater      => Some(Expression.Greater.apply)
-    case Operator.GreaterEqual => Some(Expression.GreaterEqual.apply)
-    case _                     => None
+    case Operator.Less =>
+      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Less, l, r)))
+    case Operator.LessEqual =>
+      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.LessEqual, l, r)))
+    case Operator.Greater =>
+      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Greater, l, r)))
+    case Operator.GreaterEqual =>
+      Some((l, r) =>
+        Buildin(BuildinFn.Comparison(BuildinFn.GreaterEqual, l, r))
+      )
+    case _ => None
 
   val termOp: BinaryOp =
-    case Operator.Plus  => Some(Expression.Add.apply)
-    case Operator.Minus => Some(Expression.Subtract.apply)
-    case _              => None
+    case Operator.Plus =>
+      Some((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Add, l, r)))
+
+    case Operator.Minus =>
+      Some((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Sub, l, r)))
+
+    case _ => None
 
   val factorOp: BinaryOp =
-    case Operator.Star  => Some(Expression.Multiply.apply)
-    case Operator.Slash => Some(Expression.Divide.apply)
-    case _              => None
+    case Operator.Star =>
+      Some((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Mul, l, r)))
+    case Operator.Slash =>
+      Some((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Div, l, r)))
+    case _ => None
 
   val unaryOp: UnaryOp =
-    case Operator.Minus => Some(Expression.Negate.apply)
-    case Operator.Bang  => Some(Expression.Not.apply)
-    case _              => None
+    case Operator.Minus =>
+      Some(x => Buildin(BuildinFn.Unary(BuildinFn.Negate, x)))
+    case Operator.Bang => Some(x => Buildin(BuildinFn.Unary(BuildinFn.Not, x)))
+    case _             => None
 
 }
