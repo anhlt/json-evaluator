@@ -29,7 +29,7 @@ object Expression {
           case a: Double  => a != 0
           case a: Boolean => a
           case a: String  => a.length > 0
-          case _          => false
+          case null       => false
         }
       }
     }
@@ -76,6 +76,15 @@ object Expression {
 
     sealed trait UnaryFn
 
+    object UnaryFn {
+      def apply(fn: UnaryFn)(a: Double): Double = {
+        fn match {
+          case Not    => -a
+          case Negate => -a
+        }
+      }
+    }
+
     case object Not extends UnaryFn
     case object Negate extends UnaryFn
 
@@ -92,22 +101,14 @@ object Expression {
   }
 
   sealed trait Value
+  object Value {
 
-  case class LitValue(v: LiteralType) extends Value
-
-  sealed trait Error
-
-  case class WrongType(v: Any, expectedType: String) extends Error
-
-  sealed trait Expr
-
-  object Expr {
     def asDouble[F[_]](
         value: Any
     )(implicit me: MonadError[F, Error]): F[Double] = {
       value match {
-        case LiteralExpr(v: Double) => me.pure(v)
-        case _                      => me.raiseError(WrongType(value, "Double"))
+        case LiteralValue(v: Double) => me.pure(v)
+        case _ => me.raiseError(WrongType(value, "Double"))
 
       }
     }
@@ -116,64 +117,44 @@ object Expression {
         value: Any
     )(implicit me: MonadError[F, Error]): F[Boolean] = {
       value match {
-        case LiteralExpr(v: Boolean) => me.pure(v)
+        case LiteralValue(v: Boolean) => me.pure(v)
         case _ => me.raiseError(WrongType(value, "Boolean"))
       }
     }
 
+    def asClosure[F[_]](
+        value: Any
+    )(implicit me: MonadError[F, Error]): F[Closure] = {
+      value match {
+        case LiteralValue(v: Closure) => me.pure(v)
+        case _ => me.raiseError(WrongType(value, "Closure"))
+      }
+    }
   }
 
+  case class LiteralValue(v: LiteralType) extends Value
+
+  case class Closure(env: Env, varName: Variable, body: Expr) extends Value
+
+  type Env = Map[Variable, Value]
+
+  sealed trait Error
+
+  case class WrongType(v: Any, expectedType: String) extends Error
+  case class UnboundedName(token: Token) extends Error
+
+  // var x , y
+  // abs: \x = x + 1
+
+  sealed trait Expr
+
   case class Variable(name: Token) extends Expr
-  case class Assign(variable: Variable, body: Expr) extends Expr
+  case class Abs(variable: Variable, body: Expr) extends Expr
+  case class Func(body: Expr, arg: Expr) extends Expr
   case class LiteralExpr(value: LiteralType) extends Expr
   case class Buildin(fn: BuildinFn) extends Expr
   case class Cond(pred: Expr, trueBranch: Expr, falseBranch: Expr) extends Expr
 
   case class Grouping(expr: Expr) extends Expr
 
-}
-
-object Evaluator {
-
-  import Expression._
-  import BuildinFn._
-
-  def eval[F[_]](expr: Expr)(implicit me: MonadError[F, Error]): F[Expr] =
-    expr match {
-      case LiteralExpr(_) => me.pure(expr)
-      case Buildin(Arthimetric(fn, opA, opB)) => {
-        for {
-          valA1 <- eval(opA)
-          valA <- Expr.asDouble(valA1)
-          valB1 <- eval(opB)
-          valB <- Expr.asDouble(valB1)
-        } yield LiteralExpr(ArthimetricFn.apply(fn)(valA)(valB))
-      }
-
-      case Buildin(Comparison(fn, opA, opB)) => {
-        for {
-          valA <- eval(opA) flatMap Expr.asDouble
-          valB <- eval(opB) flatMap Expr.asDouble
-        } yield LiteralExpr(ComparisonFn.apply(fn)(valA)(valB))
-      }
-
-      case Buildin(Logical(fn, opA, opB)) => {
-        for {
-          valA1 <- eval(opA)
-          valA <- Expr.asDouble(valA1)
-          valB1 <- eval(opB)
-          valB <- Expr.asDouble(valB1)
-        } yield LiteralExpr(LogicalFn.apply(fn)(valA)(valB))
-      }
-
-      case Cond(pred, trueBranch, falseBranch) => {
-        for {
-          valPredExpr <- eval(pred)
-          valPred <- Expr.asBool(valPredExpr)
-          result <- if (valPred) eval(trueBranch) else eval(falseBranch)
-        } yield result
-      }
-
-      // case _ => LiteralExpr(1.0).asRight
-    }
 }

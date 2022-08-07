@@ -5,12 +5,12 @@ import cats.{parse => _, _}
 import cats.implicits._
 import munit.CatsEffectSuite
 import Expression as Expr
+import Expression.{Buildin, BuildinFn}
 import io.jseval.Scanner.{parser => ScannerParser}
 
 import Keyword._
 import Operator._
 import Literal._
-import io.jseval.Expression.Expr
 
 class ParserTest extends munit.FunSuite:
 
@@ -69,45 +69,66 @@ class ParserTest extends munit.FunSuite:
       RightParen
     )
 
-    val want = Expr.Or(
-      left = Expr.Greater(
-        left = Expr.LiteralExpr(
-          4.0
-        ),
-        right = Expr.LiteralExpr(
-          3.0
-        )
-      ),
-      right = Expr.And(
-        left = Expr.Grouping(
-          expr = Expr.Less(
-            left = Expr.Add(
-              left = Expr.LiteralExpr(
-                5.0
-              ),
-              right = Expr.LiteralExpr(
-                6.0
-              )
-            ),
-            right = Expr.LiteralExpr(
+    val want = Buildin(
+      BuildinFn.Logical(
+        BuildinFn.Or,
+        Buildin(
+          BuildinFn.Comparison(
+            BuildinFn.Greater,
+            Expr.LiteralExpr(
               4.0
+            ),
+            Expr.LiteralExpr(
+              3.0
             )
           )
         ),
-        right = Expr.Grouping(
-          expr = Expr.Greater(
-            left = Expr.Grouping(
-              expr = Expr.Add(
-                left = Expr.LiteralExpr(
-                  7.0
-                ),
-                right = Expr.LiteralExpr(
-                  8.0
+        Buildin(
+          BuildinFn.Logical(
+            BuildinFn.And,
+            Expr.Grouping(
+              expr = Buildin(
+                BuildinFn.Comparison(
+                  BuildinFn.Less,
+                  Buildin(
+                    BuildinFn.Arthimetric(
+                      BuildinFn.Add,
+                      Expr.LiteralExpr(
+                        5.0
+                      ),
+                      Expr.LiteralExpr(
+                        6.0
+                      )
+                    )
+                  ),
+                  Expr.LiteralExpr(
+                    4.0
+                  )
                 )
               )
             ),
-            right = Expr.LiteralExpr(
-              3.0
+            Expr.Grouping(
+              expr = Buildin(
+                BuildinFn.Comparison(
+                  BuildinFn.Greater,
+                  Expr.Grouping(
+                    expr = Buildin(
+                      BuildinFn.Arthimetric(
+                        BuildinFn.Add,
+                        Expr.LiteralExpr(
+                          7.0
+                        ),
+                        Expr.LiteralExpr(
+                          8.0
+                        )
+                      )
+                    )
+                  ),
+                  Expr.LiteralExpr(
+                    3.0
+                  )
+                )
+              )
             )
           )
         )
