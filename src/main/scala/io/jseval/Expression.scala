@@ -126,7 +126,7 @@ object Expression {
         value: Any
     )(implicit me: MonadError[F, Error]): F[Closure] = {
       value match {
-        case LiteralValue(v: Closure) => me.pure(v)
+        case v: Closure => me.pure(v)
         case _ => me.raiseError(WrongType(value, "Closure"))
       }
     }
@@ -134,9 +134,9 @@ object Expression {
 
   case class LiteralValue(v: LiteralType) extends Value
 
-  case class Closure(env: Env, varName: Variable, body: Expr) extends Value
+  case class Closure(env: Env, varName: Token, body: Expr) extends Value
 
-  type Env = Map[Variable, Value]
+  type Env = Map[Token, Value]
 
   sealed trait Error
 
@@ -145,16 +145,27 @@ object Expression {
 
   // var x , y
   // abs: \x = x + 1
+  // app: \x = x + 1 , 5
 
   sealed trait Expr
 
   case class Variable(name: Token) extends Expr
-  case class Abs(variable: Variable, body: Expr) extends Expr
-  case class Func(body: Expr, arg: Expr) extends Expr
+  case class Abs(variableName: Token, body: Expr) extends Expr
+  case class App(body: Expr, arg: Expr) extends Expr
   case class LiteralExpr(value: LiteralType) extends Expr
   case class Buildin(fn: BuildinFn) extends Expr
   case class Cond(pred: Expr, trueBranch: Expr, falseBranch: Expr) extends Expr
 
   case class Grouping(expr: Expr) extends Expr
+  case class Binding(
+      recursive: Boolean,
+      variable: Variable,
+      body: Expr,
+      expr: Expr
+  ) extends Expr
+
+  // let f x = x + 5
+  // recursive = 0 , var = f , body = \x = x + 5, expr = app f x
+  //
 
 }

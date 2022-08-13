@@ -63,12 +63,12 @@ object Evaluator {
       case Abs(variable, body) => me.pure(Closure(env, variable, body))
 
       case variable @ Variable(token) =>
-        env.get(variable) match {
+        env.get(token) match {
           case Some(v) => me.pure(v)
           case None    => me.raiseError(UnboundedName(token))
         }
 
-      case Func(expr, arg) => {
+      case App(expr, arg) => {
         for {
           closureValue <- eval(expr)
           cls <- Value.asClosure(closureValue)
@@ -78,5 +78,19 @@ object Evaluator {
         } yield result
       }
 
+      // let f x = x + 5
+      // recursive = 0 , var = f , body = \x = x + 5, expr = app f x
+
+      case Binding(
+            recursive: Boolean,
+            variable: Variable,
+            body: Expr,
+            expr: Expr
+          ) =>
+        for {
+          bodyVal <- eval(body) // enclosure
+          newEnv = env + (variable.name -> bodyVal)
+          result <- eval(expr)(me, newEnv)
+        } yield result
     }
 }
