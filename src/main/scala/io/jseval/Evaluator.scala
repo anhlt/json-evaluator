@@ -78,18 +78,23 @@ object Evaluator {
         } yield result
       }
 
-      // let f x = x + 5
+      // let f \x x + 5
       // recursive = 0 , var = f , body = \x = x + 5, expr = app f x
+
+      // let sum = \x = x + 1 {
+             
+
+      // }
 
       case Binding(
             recursive: Boolean,
-            variable: Variable,
+            variableName: Token,
             body: Expr,
             expr: Expr
           ) =>
         for {
           bodyVal <- eval(body) // enclosure
-          newEnv = env + (variable.name -> bodyVal)
+          newEnv = env + (variableName -> bodyVal)
           result <- eval(expr)(me, newEnv)
         } yield result
     }

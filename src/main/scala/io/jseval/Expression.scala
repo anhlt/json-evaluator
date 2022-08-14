@@ -127,7 +127,7 @@ object Expression {
     )(implicit me: MonadError[F, Error]): F[Closure] = {
       value match {
         case v: Closure => me.pure(v)
-        case _ => me.raiseError(WrongType(value, "Closure"))
+        case _          => me.raiseError(WrongType(value, "Closure"))
       }
     }
   }
@@ -159,7 +159,7 @@ object Expression {
   case class Grouping(expr: Expr) extends Expr
   case class Binding(
       recursive: Boolean,
-      variable: Variable,
+      variableName: Token,
       body: Expr,
       expr: Expr
   ) extends Expr
