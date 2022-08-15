@@ -13,7 +13,11 @@ class EvaluatorTest extends munit.FunSuite:
 
   val tokenX = Literal.Identifier("x")
   val tokenY = Literal.Identifier("y")
+  val tokenZ = Literal.Identifier("z")
+  val tokenU = Literal.Identifier("u")
+
   val sumToken = Literal.Identifier("sum")
+  val incToken = Literal.Identifier("inc")
 
   val x = Expr.Variable(tokenX)
   val y = Expr.Variable(tokenY)
@@ -107,6 +111,12 @@ class EvaluatorTest extends munit.FunSuite:
 
   test("Binding: let inc = \\x x + 3 and inc(1) + 1") {
 
+    // Let inc = \x x + 3 {
+    //
+    // }
+
+    // define \x x + 3
+
     val bodyExpr = Abs(
       variableName = tokenX,
       body = Buildin(
@@ -120,19 +130,129 @@ class EvaluatorTest extends munit.FunSuite:
       )
     )
 
-    // val addExpr = 
+    // binding sum = \x x + 3
 
-    val bind = Binding(
+    def inc3(x: Double) = Binding(
       recursive = false,
       variableName = sumToken,
       body = bodyExpr,
       expr = App(
         body = Variable(sumToken),
-        arg = Expr.LiteralExpr(1.0)
+        arg = Expr.LiteralExpr(x)
       )
     )
 
-    val result: MyEither[Value] = ExprEval.eval[MyEither](bind)
+    val result: MyEither[Value] = ExprEval.eval[MyEither](inc3(1.0))
     assertEquals(result, Right(Expr.LiteralValue(4.0)))
 
+  }
+
+  test("""
+    Let y = 1
+    Let inc = \x x + 3
+    in inc(y)
+    """.stripMargin) {
+
+    // Let inc = \x x + 3
+
+    // define \x x + 3
+
+    val bodyExpr = Abs(
+      variableName = tokenX,
+      body = Buildin(
+        BuildinFn.Arthimetric(
+          BuildinFn.Add,
+          x,
+          Expr.LiteralExpr(
+            3.0
+          )
+        )
+      )
+    )
+
+    // binding inc = \x x + 3
+
+    val incBind = Binding(
+      recursive = false,
+      variableName = incToken,
+      body = bodyExpr,
+      expr = App(
+        body = Variable(incToken),
+        arg = Expr.Variable(tokenY)
+      )
+    )
+
+    // let y = 1
+    // let sum = \x \x + 3
+    // in sum(y)
+
+    val finalBind = Binding(
+      recursive = false,
+      variableName = tokenY,
+      body = Expr.LiteralExpr(1.0),
+      expr = incBind
+    )
+
+    val result: MyEither[Value] = ExprEval.eval[MyEither](finalBind)
+    assertEquals(result, Right(Expr.LiteralValue(4.0)))
+
+  }
+
+  test("""
+    Let z = 4
+    Let t = 3
+    Let sum = \x \y x + y
+    in sum(z, t)
+    """) {
+
+    // \y => x + y
+
+    val yEqualtoXplusY = Abs(
+      variableName = tokenY,
+      body = Buildin(
+        BuildinFn.Arthimetric(
+          BuildinFn.Add,
+          x,
+          y
+        )
+      )
+    )
+
+    // \x \y x + y
+
+    val sumBody = Abs(
+      variableName = tokenX,
+      yEqualtoXplusY
+    )
+
+    // binding sum = \x \y x + y
+
+    val sum = Binding(
+      recursive = false,
+      variableName = sumToken,
+      body = sumBody,
+      expr = App(
+        App(body = Variable(sumToken), arg = Expr.Variable(tokenZ)),
+        arg = Expr.Variable(tokenU)
+      )
+    )
+
+    // Let z = 4
+    // Let u = 3
+    // in sum(z + u)
+
+    val finalBind = Binding(
+      recursive = false,
+      variableName = tokenZ,
+      body = Expr.LiteralExpr(4.0),
+      expr = Binding(
+        recursive = false,
+        variableName = tokenU,
+        body = Expr.LiteralExpr(3.0),
+        expr = sum
+      )
+    )
+
+    val result: MyEither[Value] = ExprEval.eval[MyEither](finalBind)
+    assertEquals(result, Right(Expr.LiteralValue(7.0)))
   }
