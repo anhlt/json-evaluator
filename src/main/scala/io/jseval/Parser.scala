@@ -103,7 +103,6 @@ object Parser {
       case _            => Left(Error.ExpectExpression(tokens))
     }
 
-  type StmtParser = Either[Error, (Stmt, List[Token])]
 
   type ExprParser = Either[Error, (Expr, List[Token])]
 

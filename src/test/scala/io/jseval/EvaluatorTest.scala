@@ -79,7 +79,7 @@ class EvaluatorTest extends munit.FunSuite:
 
   test("lambda \\x \\y x + y") {
 
-    def sum(xValue: Double, yValue: Double): Expr = {
+    def sum(xExpression: Expr, yExpression: Expr): Expr = {
       val bodyExpr =
         Abs(
           variableName = tokenX,
@@ -97,13 +97,14 @@ class EvaluatorTest extends munit.FunSuite:
 
       val app =
         App(
-          App(body = bodyExpr, arg = Expr.LiteralExpr(xValue)),
-          arg = Expr.LiteralExpr(yValue)
+          App(body = bodyExpr, arg = xExpression),
+          arg = yExpression
         )
       app
     }
 
-    val result: MyEither[Value] = ExprEval.eval[MyEither](sum(5.0, 6.0))
+    val result: MyEither[Value] =
+      ExprEval.eval[MyEither](sum(Expr.LiteralExpr(5.0), Expr.LiteralExpr(6.0)))
 
     assertEquals(result, Right(Expr.LiteralValue(11.0)))
 
