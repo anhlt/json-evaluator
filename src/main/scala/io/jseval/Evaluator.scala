@@ -16,35 +16,37 @@ object Evaluator {
       case LiteralExpr(v) => me.pure(LiteralValue(v))
       case Buildin(Arthimetric(fn, opA, opB)) => {
         for {
-          valA1 <- eval(opA)
-          valA <- Value.asDouble(valA1)
-          valB1 <- eval(opB)
-          valB <- Value.asDouble(valB1)
-        } yield LiteralValue(ArthimetricFn.apply(fn)(valA)(valB))
+          aAsValue <- eval(opA)
+          aAsDouble <- Value.asDouble(aAsValue)
+          bAsValue <- eval(opB)
+          bAsDouble <- Value.asDouble(bAsValue)
+        } yield LiteralValue(ArthimetricFn.apply(fn)(aAsDouble)(bAsDouble))
       }
 
       case Buildin(Comparison(fn, opA, opB)) => {
         for {
-          valA <- eval(opA) flatMap Value.asDouble
-          valB <- eval(opB) flatMap Value.asDouble
-        } yield LiteralValue(ComparisonFn.apply(fn)(valA)(valB))
+          aAsValue <- eval(opA)
+          aAsDouble <- Value.asDouble(aAsValue)
+          bAsValue <- eval(opB)
+          bAsDouble <- Value.asDouble(bAsValue)
+        } yield LiteralValue(ComparisonFn.apply(fn)(aAsDouble)(bAsDouble))
       }
 
       case Buildin(Unary(fn, op)) => {
         for {
-          valA1 <- eval(op)
-          valA <- Value.asDouble(valA1)
-        } yield LiteralValue(UnaryFn.apply(fn)(valA))
+          aAsValue <- eval(op)
+          aAsDouble <- Value.asDouble(aAsValue)
+        } yield LiteralValue(UnaryFn.apply(fn)(aAsDouble))
 
       }
 
       case Buildin(Logical(fn, opA, opB)) => {
         for {
-          valA1 <- eval(opA)
-          valA <- Value.asDouble(valA1)
-          valB1 <- eval(opB)
-          valB <- Value.asDouble(valB1)
-        } yield LiteralValue(LogicalFn.apply(fn)(valA)(valB))
+          aAsValue <- eval(opA)
+          aAsDouble <- Value.asDouble(aAsValue)
+          bAsValue <- eval(opB)
+          bAsDouble <- Value.asDouble(bAsValue)
+        } yield LiteralValue(LogicalFn.apply(fn)(aAsDouble)(bAsDouble))
       }
 
       case Grouping(op: Expr) =>
@@ -70,8 +72,8 @@ object Evaluator {
 
       case App(expr, arg) => {
         for {
-          closureValue <- eval(expr)
-          cls <- Value.asClosure(closureValue)
+          bodyAsAvalue <- eval(expr)
+          cls <- Value.asClosure(bodyAsAvalue)
           argValue <- eval(arg)
           newEnv = cls.env + (cls.varName -> argValue)
           result <- eval(cls.body)(me, newEnv)
@@ -82,7 +84,6 @@ object Evaluator {
       // recursive = 0 , var = f , body = \x = x + 5, expr = app f x
 
       // let sum = \x = x + 1 {
-             
 
       // }
 
