@@ -16,7 +16,11 @@ object TypeInfer {
 
   object TypeError {
     sealed trait Error
-    case class IncorrectType(expectedType: String, givenType: String)
+    case class IncorrectType(expectedType: String, givenType: Typ) extends Error
+
+    case class IncorrectCompareType(leftType: Typ, rightType: Typ) extends Error
+
+    case class IncorrectArgumentType(leftType: Typ, rightType: Typ)
         extends Error
 
     case class UnboundedNameWhileTypeCheck(variableName: Token) extends Error
@@ -32,6 +36,31 @@ object TypeInfer {
 
     // }
 
+    def asArrow[F[_]](
+        typ: Typ
+    )(implicit me: MonadError[F, TypeError.Error]): F[TArrow] = {
+      typ match {
+        case x: TArrow => me.pure(x)
+        case _         => me.raiseError(TypeError.IncorrectType("TArrow", typ))
+      }
+
+    }
+
+    def appInfer[F[_]](bodyType: TArrow, argType: Typ)(implicit
+        me: MonadError[F, TypeError.Error]
+    ): F[Typ] = {
+      if (equals(bodyType.argType, argType)) {
+        me.pure(bodyType.bodyType)
+      } else {
+        me.raiseError(
+          TypeError.IncorrectArgumentType(
+            bodyType.argType,
+            argType
+          )
+        )
+      }
+    }
+
     def asType(v: LiteralType): Typ = {
       v match {
         case x: Double  => TInt
@@ -45,7 +74,7 @@ object TypeInfer {
     )(implicit me: MonadError[F, TypeError.Error]): F[Typ] = {
       typ match {
         case TInt => me.pure(TInt)
-        case _    => me.raiseError(TypeError.IncorrectType("TInt", ""))
+        case _    => me.raiseError(TypeError.IncorrectType("TInt", typ))
       }
     }
 
@@ -53,18 +82,19 @@ object TypeInfer {
         typ: Typ
     )(implicit me: MonadError[F, TypeError.Error]): F[Typ] = {
       typ match {
-        case TInt => me.pure(TInt)
-        case _    => me.raiseError(TypeError.IncorrectType("TInt", ""))
+        case TBoolean => me.pure(TBoolean)
+        case _        => me.raiseError(TypeError.IncorrectType("TBoolean", typ))
       }
     }
 
     def equals(typ1: Typ, typ2: Typ): Boolean = {
       (typ1, typ2) match {
-        case (_: TInt, _: TInt)         => True
-        case (_: TString, _: TString)   => True
-        case (_: TBoolean, _: TBoolean) => True
+        case (TInt, TInt)         => true
+        case (TString, TString)   => true
+        case (TBoolean, TBoolean) => true
         case (t1: TArrow, t2: TArrow) =>
-          equals(t1.argType, t2.argType) && equals(t1.bodyType, t.bodyType)
+          equals(t1.argType, t2.argType) && equals(t1.bodyType, t2.bodyType)
+        case _ => false
       }
     }
 
@@ -87,9 +117,15 @@ object TypeInfer {
       case Buildin(Comparison(fn, opA, opB)) => {
         for {
           aAsValue <- infer(opA)
-          aAsDouble <- Utils.asInt(aAsValue)
           bAsValue <- infer(opB)
-          bAsDouble <- Utils.asInt(bAsValue)
+          result <-
+            if (Utils.equals(aAsValue, bAsValue)) {
+              me.pure(TBoolean)
+            } else {
+              me.raiseError(
+                TypeError.IncorrectCompareType(aAsValue, bAsValue)
+              )
+            }
         } yield TBoolean
       }
 
@@ -115,13 +151,22 @@ object TypeInfer {
           x <- infer(op)
         } yield x
 
-      // case Cond(pred, trueBranch, falseBranch) => {
-      //   for {
-      //     valPredExpr <- eval(pred)
-      //     valPred <- Value.asBool(valPredExpr)
-      //     result <- if (valPred) eval(trueBranch) else eval(falseBranch)
-      //   } yield result
-      // }
+      case Cond(pred, trueBranch, falseBranch) => {
+        for {
+          predType <- infer(pred)
+          predTypeAsBool <- Utils.asBool(predType)
+          trueBranchType <- infer(trueBranch)
+          falseBranchType <- infer(falseBranch)
+          result <-
+            if (Utils.equals(trueBranchType, falseBranchType)) {
+              me.pure(trueBranchType)
+            } else {
+              me.raiseError(
+                TypeError.IncorrectType(s"$trueBranchType", falseBranchType)
+              )
+            }
+        } yield result
+      }
 
       case Abs(variable, variableType, body) => {
         val newEnv = env + (variable -> variableType)
@@ -143,11 +188,11 @@ object TypeInfer {
 
       case App(expr, arg) => {
         for {
-          bodyAsAvalue <- infer(expr)
-          cls <- Value.asClosure(bodyAsAvalue)
+          bodyType <- infer(expr)
+          bodyTypeAsArrow <- Utils.asArrow(bodyType)
           argValue <- infer(arg)
-          newEnv = cls.env + (cls.varName -> argValue)
-          result <- infer(cls.body)(me, newEnv)
+          result <- Utils.appInfer(bodyTypeAsArrow, argValue)
+
         } yield result
       }
 
@@ -158,17 +203,16 @@ object TypeInfer {
 
       // }
 
-      // case Binding(
-      //       recursive: Boolean,
-      //       variableName: Token,
-      //       body: Expr,
-      //       expr: Expr
-      //     ) =>
-      //   for {
-      //     bodyVal <- eval(body) // enclosure
-      //     newEnv = env + (variableName -> bodyVal)
-      //     result <- eval(expr)(me, newEnv)
-      //   } yield result
+      case Binding(
+            recursive: Boolean,
+            variableName: Token,
+            body: Expr,
+            expr: Expr
+          ) =>
+        for {
+          bodyVal <- infer(body) // enclosure
+          newEnv = env + (variableName -> bodyVal)
+          result <- infer(expr)(me, newEnv)
+        } yield result
     }
-
 }

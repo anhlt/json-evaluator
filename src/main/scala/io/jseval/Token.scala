@@ -69,3 +69,5 @@ enum Keyword(val lexeme: String) extends Token:
 enum Comment(val lexeme: String) extends Token:
   case SingleLine(override val lexeme: String) extends Comment(lexeme)
   case Block(override val lexeme: String) extends Comment(lexeme)
+
+
