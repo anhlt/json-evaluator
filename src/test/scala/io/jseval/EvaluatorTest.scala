@@ -4,6 +4,10 @@ import cats.implicits._
 import munit.CatsEffectSuite
 import Expression as Expr
 import Expression._
+import Expression.BuildinModule._
+import Expression.BuildinModule.BuildinFn._
+import Expression.ValueModule._
+import TypModule.TInt
 import Evaluator as ExprEval
 import io.jseval.{Token, Literal}
 
@@ -40,7 +44,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result = ExprEval.eval[MyEither](expr)
 
-    assertEquals(result, Right(Expr.LiteralValue(5.0)))
+    assertEquals(result, Right(LiteralValue(5.0)))
 
   }
 
@@ -53,6 +57,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = token,
+      variableType = TInt,
       body = Buildin(
         BuildinFn.Arthimetric(
           BuildinFn.Add,
@@ -68,7 +73,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result = ExprEval.eval[MyEither](app)
 
-    assertEquals(result, Right(Expr.LiteralValue(8.0)))
+    assertEquals(result, Right(LiteralValue(8.0)))
 
   }
 
@@ -83,8 +88,10 @@ class EvaluatorTest extends munit.FunSuite:
       val bodyExpr =
         Abs(
           variableName = tokenX,
+          variableType = TInt,
           Abs(
             variableName = tokenY,
+            variableType = TInt,
             body = Buildin(
               BuildinFn.Arthimetric(
                 BuildinFn.Add,
@@ -106,7 +113,7 @@ class EvaluatorTest extends munit.FunSuite:
     val result: MyEither[Value] =
       ExprEval.eval[MyEither](sum(Expr.LiteralExpr(5.0), Expr.LiteralExpr(6.0)))
 
-    assertEquals(result, Right(Expr.LiteralValue(11.0)))
+    assertEquals(result, Right(LiteralValue(11.0)))
 
   }
 
@@ -120,6 +127,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = tokenX,
+      variableType = TInt,
       body = Buildin(
         BuildinFn.Arthimetric(
           BuildinFn.Add,
@@ -144,7 +152,7 @@ class EvaluatorTest extends munit.FunSuite:
     )
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](inc3(1.0))
-    assertEquals(result, Right(Expr.LiteralValue(4.0)))
+    assertEquals(result, Right(LiteralValue(4.0)))
 
   }
 
@@ -160,6 +168,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = tokenX,
+      variableType = TInt,
       body = Buildin(
         BuildinFn.Arthimetric(
           BuildinFn.Add,
@@ -195,7 +204,7 @@ class EvaluatorTest extends munit.FunSuite:
     )
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](finalBind)
-    assertEquals(result, Right(Expr.LiteralValue(4.0)))
+    assertEquals(result, Right(LiteralValue(4.0)))
 
   }
 
@@ -210,6 +219,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val yEqualtoXplusY = Abs(
       variableName = tokenY,
+      variableType = TInt,
       body = Buildin(
         BuildinFn.Arthimetric(
           BuildinFn.Add,
@@ -223,6 +233,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val sumBody = Abs(
       variableName = tokenX,
+      variableType = TInt,
       yEqualtoXplusY
     )
 
@@ -255,5 +266,5 @@ class EvaluatorTest extends munit.FunSuite:
     )
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](finalBind)
-    assertEquals(result, Right(Expr.LiteralValue(7.0)))
+    assertEquals(result, Right(LiteralValue(7.0)))
   }

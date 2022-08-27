@@ -4,7 +4,7 @@ import cats._
 import cats.implicits._
 import Expression._
 import io.jseval.Expression
-import io.jseval.Expression.BuildinFn
+import io.jseval.Expression.BuildinModule.BuildinFn
 import cats.instances._
 
 object Parser {
@@ -102,7 +102,6 @@ object Parser {
       case Some(expect) => Right(expect, tokens.tail)
       case _            => Left(Error.ExpectExpression(tokens))
     }
-
 
   type ExprParser = Either[Error, (Expr, List[Token])]
 

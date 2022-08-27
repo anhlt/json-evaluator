@@ -5,7 +5,10 @@ import cats.{parse => _, _}
 import cats.implicits._
 import munit.CatsEffectSuite
 import Expression as Expr
-import Expression.{Buildin, BuildinFn}
+import Expression._
+import Expression.BuildinModule._
+import Expression.BuildinModule.BuildinFn
+import Expression.ValueModule._
 import io.jseval.Scanner.{parser => ScannerParser}
 
 import Keyword._

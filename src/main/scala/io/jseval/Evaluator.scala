@@ -7,7 +7,9 @@ import cats.implicits._
 object Evaluator {
 
   import Expression._
-  import BuildinFn._
+  import Expression.BuildinModule._
+  import Expression.BuildinModule.BuildinFn._
+  import Expression.ValueModule._
 
   def eval[F[_]](
       expr: Expr
@@ -62,7 +64,7 @@ object Evaluator {
           result <- if (valPred) eval(trueBranch) else eval(falseBranch)
         } yield result
       }
-      case Abs(variable, body) => me.pure(Closure(env, variable, body))
+      case Abs(variable, _, body) => me.pure(Closure(env, variable, body))
 
       case variable @ Variable(token) =>
         env.get(token) match {
