@@ -3,6 +3,10 @@ package io.jseval
 import cats.syntax.all._
 import cats._
 import cats.implicits._
+import cats.mtl._
+import cats.mtl.implicits._
+import cats.syntax.all.*
+import scribe.Scribe
 
 object Evaluator {
 
@@ -91,7 +95,12 @@ object Evaluator {
 
   def eval[F[_]](
       expr: Expr
-  )(implicit me: MonadError[F, Error], env: Env): F[Value] =
+  )(implicit
+      me: MonadError[F, Throwable],
+      fr: Raise[F, Error],
+      sc: Scribe[F],
+      env: Env
+  ): F[Value] =
     expr match {
       case LiteralExpr(v) => me.pure(LiteralValue(v))
       case Buildin(Arthimetric(fn, opA, opB)) => {
@@ -147,7 +156,7 @@ object Evaluator {
       case variable @ Variable(token) =>
         env.get(token) match {
           case Some(v) => me.pure(v)
-          case None    => me.raiseError(UnboundedName(token))
+          case None    => fr.raise(UnboundedName(token))
         }
 
       case App(bodyExpr, arg) => {
@@ -158,7 +167,13 @@ object Evaluator {
           argValue <-
             eval(arg)
           newEnv = cls.env + (cls.varName -> argValue)
-          result <- eval(cls.body)(me, newEnv)
+          result <- eval(cls.body)(me, fr, sc, newEnv)
+          _ <- sc.info(s"""App: $bodyExpr, argExpression: $arg
+            |bodyClosure = $cls
+            |newEnv= $newEnv
+            |argValue = $argValue
+            |result = $result
+            """.stripMargin)
         } yield result
       }
 
@@ -178,7 +193,14 @@ object Evaluator {
         for {
           bodyVal <- eval(body) // enclosure
           newEnv = env + (variableName -> bodyVal)
-          result <- eval(expr)(me, newEnv)
+          result <- eval(expr)(me, fr, sc, newEnv)
+          _ <- sc.info(s"""
+            |Binding
+            |variableName = $variableName
+            |bodyVal = $bodyVal
+            |newEnv = $newEnv
+            |result = $result
+            """.stripMargin)
         } yield result
     }
 }

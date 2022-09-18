@@ -6,6 +6,7 @@ object Dependencies {
 
     val declineVersion = "2.2.0"
     val jacksonVersion = "2.13.3"
+    val scribeVersion = "3.10.3"
 
     val catsEffect = "org.typelevel" %% "cats-effect" % "3.3.11"
     val catsMtl = "org.typelevel" %% "cats-mtl" % "1.2.1"
@@ -23,6 +24,9 @@ object Dependencies {
     val log4catsJ =
       "org.typelevel" %% "log4cats-slf4j" % "2.5.0" // Direct Slf4j Support - Recommended
 
+    val scribe = "com.outr" %% "scribe" % scribeVersion
+    val scribeCats = "com.outr" %% "scribe-cats" % scribeVersion
+
     val all = Seq(
       catsEffect,
       catsMtl,
@@ -31,7 +35,9 @@ object Dependencies {
       jackson,
       scalaParser,
       log4cats,
-      log4catsJ
+      log4catsJ,
+      scribe,
+      scribeCats
     )
   }
 
@@ -42,7 +48,6 @@ object Dependencies {
     val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.16.0" % Test
     val munitScalaCheck =
       "org.scalameta" %% "munit-scalacheck" % "0.7.29" % Test
-    val scalatest = "org.scalatest" %% "scalatest" % "3.2.12" % Test
     val scalacheck =
       "org.scalatestplus" %% "scalacheck-1-16" % "3.2.12.0" % "test"
 
@@ -51,7 +56,6 @@ object Dependencies {
       munitScalaCheck,
       munitCatsEffect,
       scalaCheck,
-      scalatest,
       scalacheck
     )
   }

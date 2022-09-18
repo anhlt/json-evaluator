@@ -4,6 +4,8 @@ import cats._
 import cats.implicits._
 
 import TypModule._
+import cats.mtl._
+import cats.mtl.implicits._
 
 type LiteralType = Double | Boolean | String
 object LiteralType {
@@ -122,29 +124,30 @@ object Expression {
 
       def asDouble[F[_]](
           value: Any
-      )(implicit me: MonadError[F, Error]): F[Double] = {
+      )(implicit a: Applicative[F], fr: Raise[F, Error]): F[Double] = {
         value match {
-          case LiteralValue(v: Double) => me.pure(v)
-          case _ => me.raiseError(WrongType(value, "Double"))
+          case LiteralValue(v: Double) => a.pure(v)
+          case _                       => fr.raise(WrongType(value, "Double"))
+          // case _ => fr.raiseError(WrongType(value, "Double"))
 
         }
       }
 
       def asBool[F[_]](
           value: Any
-      )(implicit me: MonadError[F, Error]): F[Boolean] = {
+      )(implicit a: Applicative[F], fr: Raise[F, Error]): F[Boolean] = {
         value match {
-          case LiteralValue(v: Boolean) => me.pure(v)
-          case _ => me.raiseError(WrongType(value, "Boolean"))
+          case LiteralValue(v: Boolean) => a.pure(v)
+          case _                        => fr.raise(WrongType(value, "Boolean"))
         }
       }
 
       def asClosure[F[_]](
           value: Any
-      )(implicit me: MonadError[F, Error]): F[Closure] = {
+      )(implicit fr: Raise[F, Error], a: Applicative[F]): F[Closure] = {
         value match {
-          case v: Closure => me.pure(v)
-          case _          => me.raiseError(WrongType(value, "Closure"))
+          case v: Closure => a.pure(v)
+          case _          => fr.raise(WrongType(value, "Closure"))
         }
       }
     }
