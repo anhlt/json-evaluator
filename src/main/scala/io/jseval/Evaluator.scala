@@ -11,6 +11,84 @@ object Evaluator {
   import Expression.BuildinModule.BuildinFn._
   import Expression.ValueModule._
 
+  import TypModule._
+
+  object Utils {
+
+    val lazyFixPoint = {
+
+      val tX = Literal.Identifier("x")
+      val tFinal = Literal.Identifier("final")
+
+      // \x. f(x x)
+
+      val innerAbs = Abs(
+        variableName = tX,
+        variableType = TAny,
+        body = App(
+          body = App(
+            body = Variable(tX),
+            arg = Variable(tX)
+          ),
+          arg = Variable(tFinal)
+        )
+      )
+
+      // \f. (\x. f(x x))(\x f(x x))
+
+      Abs(
+        variableName = tFinal,
+        variableType = TAny,
+        body = App(
+          body = innerAbs,
+          arg = innerAbs
+        )
+      )
+    }
+
+    val eagerFixPoint = {
+
+      val tX = Literal.Identifier("x")
+      val tV = Literal.Identifier("v")
+      val tFinal = Literal.Identifier("f")
+
+      // \x. f(x x)
+
+      val indirect = Abs(
+        variableName = tV,
+        variableType = TAny,
+        body = App(
+          body = App(
+            body = Variable(tX),
+            arg = Variable(tX)
+          ),
+          arg = Variable(tV)
+        )
+      )
+
+      val innerAbs = Abs(
+        variableName = tX,
+        variableType = TAny,
+        body = App(
+          body = Variable(tFinal),
+          arg = indirect
+        )
+      )
+
+      // \f. (\x. f(x x))(\x f(x x))
+
+      Abs(
+        variableName = tFinal,
+        variableType = TAny,
+        body = App(
+          body = innerAbs,
+          arg = innerAbs
+        )
+      )
+    }
+
+  }
+
   def eval[F[_]](
       expr: Expr
   )(implicit me: MonadError[F, Error], env: Env): F[Value] =
@@ -72,13 +150,34 @@ object Evaluator {
           case None    => me.raiseError(UnboundedName(token))
         }
 
-      case App(expr, arg) => {
+      case App(bodyExpr, arg) => {
         for {
-          bodyAsAvalue <- eval(expr)
-          cls <- Value.asClosure(bodyAsAvalue)
-          argValue <- eval(arg)
+          bodyAsAvalue <- {
+            println("===>> STARTING")
+            eval(bodyExpr)
+          }
+          cls <- {
+            println(s"""Eval body: $bodyAsAvalue, 
+             are: $arg, 
+             env: $env
+             """)
+            Value.asClosure(bodyAsAvalue)
+          }
+          argValue <- {
+            println(s"eval arg: $arg")
+            eval(arg)
+          }
           newEnv = cls.env + (cls.varName -> argValue)
-          result <- eval(cls.body)(me, newEnv)
+          result <- {
+            println(s"""
+              START
+              bodyCls: $cls, 
+              newEnv: $newEnv, 
+              arg: $argValue
+
+              END""".stripMargin)
+            eval(cls.body)(me, newEnv)
+          }
         } yield result
       }
 

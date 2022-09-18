@@ -10,6 +10,7 @@ import Expression.ValueModule._
 import TypModule.TInt
 import Evaluator as ExprEval
 import io.jseval.{Token, Literal}
+import io.jseval.TypModule.TAny
 
 class EvaluatorTest extends munit.FunSuite:
 
@@ -19,12 +20,16 @@ class EvaluatorTest extends munit.FunSuite:
   val tokenY = Literal.Identifier("y")
   val tokenZ = Literal.Identifier("z")
   val tokenU = Literal.Identifier("u")
+  val tokenN = Literal.Identifier("n")
+  val factorialName = Literal.Identifier("f")
 
   val sumToken = Literal.Identifier("sum")
   val incToken = Literal.Identifier("inc")
 
   val x = Expr.Variable(tokenX)
   val y = Expr.Variable(tokenY)
+  val n = Expr.Variable(tokenN)
+  val factorialVariable = Expr.Variable(factorialName)
 
   implicit val env: Expr.Env = Map()
 
@@ -267,4 +272,70 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](finalBind)
     assertEquals(result, Right(LiteralValue(7.0)))
+  }
+
+  test("""Factorial: f = \n = 1 if n == 0 else n * f(n-1) """) {
+
+    // x - 1
+
+    val xMinus1 = Buildin(
+      Arthimetric(Sub, x, LiteralExpr(1))
+    )
+
+    // x * factorial(x-1)
+
+    val falseBranch = Buildin(
+      Arthimetric(Mul, x, App(body = factorialVariable, arg = xMinus1))
+    )
+
+    // x == 0
+    val comparision = Buildin(
+      Comparison(Equal, x, LiteralExpr(0))
+    )
+
+    // 1 if x == 0 else x * factorial(x - 1)
+
+    val factExpr = Cond(
+      pred = comparision,
+      trueBranch = LiteralExpr(1),
+      falseBranch = falseBranch
+    )
+
+    // body = \factoria \x 1 if x == 0 else x * factorial(x - 1)
+
+    val body = Abs(
+      variableName = factorialName,
+      variableType = TAny,
+      body = Abs(
+        variableName = tokenX,
+        variableType = TAny,
+        body = factExpr
+      )
+    )
+
+    val bodyResult = ExprEval.eval[MyEither](body)
+
+    println(bodyResult)
+
+    val lfp = ExprEval.Utils.eagerFixPoint
+
+    val facApp = App(body = lfp, arg = body)
+
+    val facAppResult = ExprEval.eval[MyEither](facApp)
+
+    println(facAppResult)
+
+    val binding = Binding(
+      recursive = true,
+      variableName = factorialName,
+      body = facApp,
+      expr = App(
+        body = factorialVariable, //
+        arg = LiteralExpr(5)
+      )
+    )
+
+    val result: MyEither[Value] = ExprEval.eval[MyEither](binding)
+    assertEquals(result, Right(LiteralValue(120)))
+
   }
