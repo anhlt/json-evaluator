@@ -152,32 +152,13 @@ object Evaluator {
 
       case App(bodyExpr, arg) => {
         for {
-          bodyAsAvalue <- {
-            println("===>> STARTING")
+          bodyAsAvalue <-
             eval(bodyExpr)
-          }
-          cls <- {
-            println(s"""Eval body: $bodyAsAvalue, 
-             are: $arg, 
-             env: $env
-             """)
-            Value.asClosure(bodyAsAvalue)
-          }
-          argValue <- {
-            println(s"eval arg: $arg")
+          cls <- Value.asClosure(bodyAsAvalue)
+          argValue <-
             eval(arg)
-          }
           newEnv = cls.env + (cls.varName -> argValue)
-          result <- {
-            println(s"""
-              START
-              bodyCls: $cls, 
-              newEnv: $newEnv, 
-              arg: $argValue
-
-              END""".stripMargin)
-            eval(cls.body)(me, newEnv)
-          }
+          result <- eval(cls.body)(me, newEnv)
         } yield result
       }
 
