@@ -12,22 +12,30 @@ object Parser {
   enum Error(msg: String, tokens: List[Token]):
     case ExpectExpression(tokens: List[Token])
         extends Error("ExpectExpression", tokens)
+    case ExpectToken(tokens: List[Token])
+        extends Error(s"Expected Token in $tokens", tokens)
     case ExpectClosing(tokens: List[Token])
         extends Error("Expect ')' after expression", tokens)
     case InvalidAssignmentTartget(token: Token)
         extends Error("Invalid assignment target.", List(token))
 
-  def parseExpression[F[_]](tokens: List[Token])(implicit
-      ae: ApplicativeError[F, Error]
-  ): F[Expr] = ???
+  def parse[F[_]](ts: List[Token])(implicit
+      a: MonadError[F, Error]
+  ): F[ParserOut] = expression(ts)
 
-  def parse(ts: List[Token]): ExprParser = expression(ts)
+  def expression[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] = or(tokens)
 
-  def expression: List[Token] => ExprParser = or
+  def or[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    binary(orOp, and)(tokens)
 
-  def or(tokens: List[Token]): ExprParser = binary(orOp, and)(tokens)
-
-  def and(tokens: List[Token]): ExprParser = binary(andOp, equality)(tokens)
+  def and[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    binary(andOp, equality)(tokens)
 
   // Parse binary expressions that share this grammar
   // ```
@@ -35,83 +43,121 @@ object Parser {
   // ```
   // Consider "equality" expression as an example. Its direct descendant is "comparison"
   // and its OPERATOR is ("==" | "!=").
-  def binary(
-      op: BinaryOp,
-      descendantFn: List[Token] => ExprParser
+
+  def binary[F[_]](
+      op: Token => F[(Expr, Expr) => Expr],
+      descendantFn: List[Token] => F[ParserOut]
   )(
       tokens: List[Token]
-  ): ExprParser =
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
 
-    def matchOp(ts: List[Token], l: Expr): ExprParser =
+    def matchOp(ts: List[Token], leftExpr: Expr): F[ParserOut] =
       ts match
         case token :: rest =>
-          op(token) match
-            case Some(fn) =>
-              descendantFn(rest).flatMap((r: Expr, rmn: List[Token]) =>
-                matchOp(rmn, fn(l, r))
-              )
-            case None => Right(l, ts)
-        case _ => Right(l, ts)
+          op(token)
+            .flatMap(fn => {
+              for {
+                result <- descendantFn(rest)
+                (rightExpr, rmn) = result
+                continueResult <- matchOp(rmn, fn(leftExpr, rightExpr))
+              } yield continueResult
+            })
+            .orElse(a.pure(leftExpr, ts))
+
+        case _ => a.pure(leftExpr, ts)
 
     descendantFn(tokens).flatMap((expr, rest) => matchOp(rest, expr))
 
-  def equality: List[Token] => ExprParser =
-    binary(equalityOp, comparison)
-  def comparison: List[Token] => ExprParser =
-    binary(comparisonOp, term)
-  def term: List[Token] => ExprParser = binary(termOp, factor)
-  def factor: List[Token] => ExprParser =
-    binary(factorOp, unary)
+  def equality[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    binary(equalityOp, comparison)(tokens)
 
-  def unary(tokens: List[Token]): ExprParser =
-    tokens match
-      case token :: rest =>
-        unaryOp(token) match
-          case Some(fn) =>
-            unary(rest).flatMap((expr, rmn) => Right(fn(expr), rmn))
-          case None => primary(tokens)
-      case _ => primary(tokens) orElse identifier(tokens) orElse group(tokens)
+  def comparison[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    binary(comparisonOp, term)(tokens)
 
-  def primary(tokens: List[Token]): ExprParser =
-    tokens match
-      case Literal.Number(l) :: rest =>
-        Right(Expression.LiteralExpr(l.toDouble), rest)
-      case Literal.Str(l) :: rest => Right(Expression.LiteralExpr(l), rest)
-      case Keyword.True :: rest   => Right(Expression.LiteralExpr(true), rest)
-      case Keyword.False :: rest  => Right(Expression.LiteralExpr(false), rest)
-      case _                      => Left(Error.ExpectExpression(tokens))
+  def term[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    binary(termOp, factor)(tokens)
 
-  def identifier(tokens: List[Token]): ExprParser =
+  def factor[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    binary(factorOp, unary)(tokens)
+
+  def unary[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
     tokens match {
-      case Literal.Identifier(name) :: rest =>
-        Right(Expression.Variable(Literal.Identifier(name)), rest)
-      case _ => Left(Error.ExpectExpression(tokens))
+      case token :: rest =>
+        (for {
+          fn <- unaryOp(token)
+          result <- unary(rest)
+          (expr, rmn) = result
+        } yield (fn(expr), rmn)).recoverWith(_ => primaryOrIdentiferOrGroup(tokens))
+
+      case _ =>
+        primaryOrIdentiferOrGroup(tokens) 
     }
 
-  def group(tokens: List[Token]): ExprParser = {
+  def primaryOrIdentiferOrGroup[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] = 
+    primary(tokens).orElse(identifier(tokens)).orElse(group(tokens))
+
+  def primary[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    tokens match
+      case Literal.Number(l) :: rest =>
+        a.pure(Expression.LiteralExpr(l.toDouble), rest)
+      case Literal.Str(l) :: rest => a.pure(Expression.LiteralExpr(l), rest)
+      case Keyword.True :: rest   => a.pure(Expression.LiteralExpr(true), rest)
+      case Keyword.False :: rest  => a.pure(Expression.LiteralExpr(false), rest)
+      case _ => a.raiseError(Error.ExpectExpression(tokens))
+
+  def identifier[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    tokens match {
+      case Literal.Identifier(name) :: rest =>
+        a.pure(Expression.Variable(Literal.Identifier(name)), rest)
+      case _ => a.raiseError(Error.ExpectExpression(tokens))
+    }
+
+  def group[F[_]](
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[ParserOut] = {
     tokens match
       case Operator.LeftParen :: rest => parenBody(rest)
-      case _                          => Left(Error.ExpectExpression(tokens))
+      case _ => a.raiseError(Error.ExpectExpression(tokens))
 
   }
 
   // Parse the body within a pair of parentheses (the part after "(")
-  def parenBody(
+  def parenBody[F[F]](
       tokens: List[Token]
-  ): ExprParser = expression(tokens).flatMap((expr, rest) =>
-    rest match
-      case Operator.RightParen :: rmn => Right(Expression.Grouping(expr), rmn)
-      case _                          => Left(Error.ExpectClosing(rest))
-  )
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    expression(tokens).flatMap((expr, rest) =>
+      rest match
+        case Operator.RightParen :: rmn =>
+          a.pure(Expression.Grouping(expr), rmn)
+        case _ => a.raiseError(Error.ExpectClosing(rest))
+    )
 
-  def consume(
+  def consume[F[_]](
       expect: Token,
       tokens: List[Token]
-  ): Either[Error, (Token, List[Token])] =
+  )(implicit a: MonadError[F, Error]): F[(Token, List[Token])] =
     tokens.headOption match {
-      case Some(expect) => Right(expect, tokens.tail)
-      case _            => Left(Error.ExpectExpression(tokens))
+      case Some(expect) => a.pure(expect, tokens.tail)
+      case _            => a.raiseError(Error.ExpectExpression(tokens))
     }
+
+  type ParserOut = (Expr, List[Token])
 
   type ExprParser = Either[Error, (Expr, List[Token])]
 
@@ -119,56 +165,120 @@ object Parser {
 
   type UnaryOp = Token => Option[Expr => Expr]
 
-  val orOp: BinaryOp =
-    case Keyword.Or =>
-      Some((l, r) => Buildin(BuildinFn.Logical(BuildinFn.Or, l, r)))
-    case _ => None
+  def orOp[F[_]](token: Token)(implicit
+      me: MonadError[F, Error]
+  ): F[(Expr, Expr) => Expr] =
+    token match
+      case Keyword.Or =>
+        me.pure((l, r) => Buildin(BuildinFn.Logical(BuildinFn.Or, l, r)))
+      case _ =>
+        me.raiseError(
+          Error.ExpectToken(
+            List(
+              Keyword.Or
+            )
+          )
+        )
 
-  val andOp: BinaryOp =
-    case Keyword.And =>
-      Some((l, r) => Buildin(BuildinFn.Logical(BuildinFn.And, l, r)))
-    case _ => None
+  def andOp[F[_]](token: Token)(implicit
+      me: MonadError[F, Error]
+  ): F[(Expr, Expr) => Expr] =
+    token match
+      case Keyword.And =>
+        me.pure((l, r) => Buildin(BuildinFn.Logical(BuildinFn.And, l, r)))
+      case _ =>
+        me.raiseError(
+          Error.ExpectToken(
+            List(
+              Keyword.And
+            )
+          )
+        )
 
-  val equalityOp: BinaryOp =
-    case Operator.EqualEqual =>
-      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Equal, l, r)))
-    case Operator.BangEqual =>
-      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.NotEqual, l, r)))
-    case _ => None
+  def equalityOp[F[_]](token: Token)(implicit
+      me: MonadError[F, Error]
+  ): F[(Expr, Expr) => Expr] =
+    token match
+      case Operator.EqualEqual =>
+        me.pure((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Equal, l, r)))
+      case Operator.BangEqual =>
+        me.pure((l, r) =>
+          Buildin(BuildinFn.Comparison(BuildinFn.NotEqual, l, r))
+        )
+      case _ =>
+        me.raiseError(
+          Error.ExpectToken(
+            List(
+              Operator.EqualEqual,
+              Operator.BangEqual
+            )
+          )
+        )
 
-  val comparisonOp: BinaryOp =
-    case Operator.Less =>
-      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Less, l, r)))
-    case Operator.LessEqual =>
-      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.LessEqual, l, r)))
-    case Operator.Greater =>
-      Some((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Greater, l, r)))
-    case Operator.GreaterEqual =>
-      Some((l, r) =>
-        Buildin(BuildinFn.Comparison(BuildinFn.GreaterEqual, l, r))
-      )
-    case _ => None
+  def comparisonOp[F[_]](token: Token)(implicit
+      me: MonadError[F, Error]
+  ): F[(Expr, Expr) => Expr] =
+    token match
+      case Operator.Less =>
+        me.pure((l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Less, l, r)))
+      case Operator.LessEqual =>
+        me.pure((l, r) =>
+          Buildin(BuildinFn.Comparison(BuildinFn.LessEqual, l, r))
+        )
+      case Operator.Greater =>
+        me.pure((l, r) =>
+          Buildin(BuildinFn.Comparison(BuildinFn.Greater, l, r))
+        )
+      case Operator.GreaterEqual =>
+        me.pure((l, r) =>
+          Buildin(BuildinFn.Comparison(BuildinFn.GreaterEqual, l, r))
+        )
+      case _ =>
+        me.raiseError(
+          Error.ExpectToken(
+            List(
+              Operator.Less,
+              Operator.LessEqual,
+              Operator.Greater,
+              Operator.GreaterEqual
+            )
+          )
+        )
 
-  val termOp: BinaryOp =
-    case Operator.Plus =>
-      Some((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Add, l, r)))
+  def termOp[F[_]](token: Token)(implicit
+      me: MonadError[F, Error]
+  ): F[(Expr, Expr) => Expr] =
+    token match
+      case Operator.Plus =>
+        me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Add, l, r)))
 
-    case Operator.Minus =>
-      Some((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Sub, l, r)))
+      case Operator.Minus =>
+        me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Sub, l, r)))
 
-    case _ => None
+      case _ =>
+        me.raiseError(Error.ExpectToken(List(Operator.Plus, Operator.Minus)))
 
-  val factorOp: BinaryOp =
-    case Operator.Star =>
-      Some((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Mul, l, r)))
-    case Operator.Slash =>
-      Some((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Div, l, r)))
-    case _ => None
+  def factorOp[F[_]](token: Token)(implicit
+      me: MonadError[F, Error]
+  ): F[(Expr, Expr) => Expr] =
+    token match
 
-  val unaryOp: UnaryOp =
-    case Operator.Minus =>
-      Some(x => Buildin(BuildinFn.Unary(BuildinFn.Negate, x)))
-    case Operator.Bang => Some(x => Buildin(BuildinFn.Unary(BuildinFn.Not, x)))
-    case _             => None
+      case Operator.Star =>
+        me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Mul, l, r)))
+      case Operator.Slash =>
+        me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Div, l, r)))
+      case _ =>
+        me.raiseError(Error.ExpectToken(List(Operator.Star, Operator.Slash)))
+
+  def unaryOp[F[_]](token: Token)(implicit
+      me: MonadError[F, Error]
+  ): F[Expr => Expr] =
+    token match
+      case x @ Operator.Minus =>
+        me.pure(x => Buildin(BuildinFn.Unary(BuildinFn.Negate, x)))
+      case x @ Operator.Bang =>
+        me.pure(x => Buildin(BuildinFn.Unary(BuildinFn.Not, x)))
+      case _ =>
+        me.raiseError(Error.ExpectToken(List(Operator.Minus, Operator.Bang)))
 
 }

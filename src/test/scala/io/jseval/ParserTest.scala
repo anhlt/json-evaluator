@@ -31,7 +31,73 @@ class ParserTest extends munit.FunSuite:
 
   }
 
-  test("Expression: '4 > 3 OR (5 + 6 < 4) AND ((7 + 8) > 3)'") {
+  test("parse_unary") {
+    val ts = List(
+      Minus,
+      Number(
+        "3"
+      )
+    )
+    val want = Buildin(
+      BuildinFn.Unary(
+        BuildinFn.Negate,
+        Expr.LiteralExpr(
+          3.0
+        )
+      )
+    )
+    assertEquals(parse(ts), Right(want, Nil))
+  }
+
+  test("parse_factor") {
+    val ts = List(
+      Number(
+        "5"
+      ),
+      Star,
+      Number(
+        "6"
+      ),
+      Star,
+      Minus,
+      Number(
+        "4"
+      )
+    )
+
+    val want = Buildin(
+      BuildinFn.Arthimetric(
+        BuildinFn.Mul,
+        Buildin(
+          BuildinFn.Arthimetric(
+            BuildinFn.Mul,
+            Expr.LiteralExpr(
+              5.0
+            ),
+            Expr.LiteralExpr(
+              6.0
+            )
+          )
+        ),
+        Buildin(
+          BuildinFn.Unary(
+            BuildinFn.Negate,
+            Expr.LiteralExpr(
+              4.0
+            )
+          )
+        )
+      )
+    )
+
+    assertEquals(parse(ts), Right(want, Nil))
+
+  }
+
+  test("parse_complex_expression") {
+
+    println("4 > 3 OR (5 + 6 < 4) AND ((7 + 8) > 3)")
+
     val ts = List(
       Literal.Number(
         "4"
