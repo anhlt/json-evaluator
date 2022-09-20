@@ -8,11 +8,16 @@ import Expression.ValueModule._
 object TypModule {
   sealed trait Typ
 
+  sealed trait BaseTyp extends Typ
+
+  case object TInt extends BaseTyp
+  case object TString extends BaseTyp
+  case object TBoolean extends BaseTyp
+
   case object TAny extends Typ
-  case object TInt extends Typ
-  case object TString extends Typ
-  case object TBoolean extends Typ
+  case object TUnit extends Typ
+
   case class TArrow(argType: Typ, bodyType: Typ) extends Typ
+  case class TProduct(firstType: Typ, secondType: Typ) extends Typ
 
 }
-

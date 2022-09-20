@@ -25,9 +25,9 @@ object Parser {
 
   def expression: List[Token] => ExprParser = or
 
-  def or: List[Token] => ExprParser = binary(orOp, and)
+  def or(tokens: List[Token]): ExprParser = binary(orOp, and)(tokens)
 
-  def and: List[Token] => ExprParser = binary(andOp, equality)
+  def and(tokens: List[Token]): ExprParser = binary(andOp, equality)(tokens)
 
   // Parse binary expressions that share this grammar
   // ```
@@ -37,7 +37,7 @@ object Parser {
   // and its OPERATOR is ("==" | "!=").
   def binary(
       op: BinaryOp,
-      descendant: List[Token] => ExprParser
+      descendantFn: List[Token] => ExprParser
   )(
       tokens: List[Token]
   ): ExprParser =
@@ -47,13 +47,13 @@ object Parser {
         case token :: rest =>
           op(token) match
             case Some(fn) =>
-              descendant(rest).flatMap((r: Expr, rmn: List[Token]) =>
+              descendantFn(rest).flatMap((r: Expr, rmn: List[Token]) =>
                 matchOp(rmn, fn(l, r))
               )
             case None => Right(l, ts)
         case _ => Right(l, ts)
 
-    descendant(tokens).flatMap((expr, rest) => matchOp(rest, expr))
+    descendantFn(tokens).flatMap((expr, rest) => matchOp(rest, expr))
 
   def equality: List[Token] => ExprParser =
     binary(equalityOp, comparison)
@@ -70,7 +70,7 @@ object Parser {
           case Some(fn) =>
             unary(rest).flatMap((expr, rmn) => Right(fn(expr), rmn))
           case None => primary(tokens)
-      case _ => primary(tokens)
+      case _ => primary(tokens) orElse identifier(tokens) orElse group(tokens)
 
   def primary(tokens: List[Token]): ExprParser =
     tokens match
@@ -79,11 +79,21 @@ object Parser {
       case Literal.Str(l) :: rest => Right(Expression.LiteralExpr(l), rest)
       case Keyword.True :: rest   => Right(Expression.LiteralExpr(true), rest)
       case Keyword.False :: rest  => Right(Expression.LiteralExpr(false), rest)
-      case Keyword.Null :: rest   => Right(Expression.LiteralExpr(null), rest)
+      case _                      => Left(Error.ExpectExpression(tokens))
+
+  def identifier(tokens: List[Token]): ExprParser =
+    tokens match {
       case Literal.Identifier(name) :: rest =>
         Right(Expression.Variable(Literal.Identifier(name)), rest)
+      case _ => Left(Error.ExpectExpression(tokens))
+    }
+
+  def group(tokens: List[Token]): ExprParser = {
+    tokens match
       case Operator.LeftParen :: rest => parenBody(rest)
       case _                          => Left(Error.ExpectExpression(tokens))
+
+  }
 
   // Parse the body within a pair of parentheses (the part after "(")
   def parenBody(
