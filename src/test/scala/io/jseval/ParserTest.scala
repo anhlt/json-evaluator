@@ -1,19 +1,17 @@
 package io.jseval
 
-import Parser._
-import cats.{parse => _, _}
+import Parser.*
+import cats._
 import cats.implicits._
-import munit.CatsEffectSuite
-import Expression as Expr
 import Expression._
 import Expression.BuildinModule._
 import Expression.BuildinModule.BuildinFn
 import Expression.ValueModule._
-import io.jseval.Scanner.{parser => ScannerParser}
-
+import io.jseval.Scanner._
 import Keyword._
 import Operator._
 import Literal._
+import io.jseval.TypModule._
 
 class ParserTest extends munit.FunSuite:
 
@@ -21,13 +19,13 @@ class ParserTest extends munit.FunSuite:
     val ts = List(Literal.Number("42"))
     val expected = Expression.LiteralExpr(42)
 
-    assertEquals(parse(ts), Right(expected, Nil))
+    assertEquals(parseExpr(ts), Right(expected, Nil))
   }
 
   test("expression primary string") {
     val ts = List(Literal.Str("you rox!"))
-    val want = Expr.LiteralExpr("you rox!")
-    assertEquals(parse(ts), Right(want, Nil))
+    val want = LiteralExpr("you rox!")
+    assertEquals(parseExpr(ts), Right(want, Nil))
 
   }
 
@@ -41,12 +39,12 @@ class ParserTest extends munit.FunSuite:
     val want = Buildin(
       BuildinFn.Unary(
         BuildinFn.Negate,
-        Expr.LiteralExpr(
+        LiteralExpr(
           3.0
         )
       )
     )
-    assertEquals(parse(ts), Right(want, Nil))
+    assertEquals(parseExpr(ts), Right(want, Nil))
   }
 
   test("parse_factor") {
@@ -71,10 +69,10 @@ class ParserTest extends munit.FunSuite:
         Buildin(
           BuildinFn.Arthimetric(
             BuildinFn.Mul,
-            Expr.LiteralExpr(
+            LiteralExpr(
               5.0
             ),
-            Expr.LiteralExpr(
+            LiteralExpr(
               6.0
             )
           )
@@ -82,7 +80,7 @@ class ParserTest extends munit.FunSuite:
         Buildin(
           BuildinFn.Unary(
             BuildinFn.Negate,
-            Expr.LiteralExpr(
+            LiteralExpr(
               4.0
             )
           )
@@ -90,7 +88,7 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(parse(ts), Right(want, Nil))
+    assertEquals(parseExpr(ts), Right(want, Nil))
 
   }
 
@@ -144,10 +142,10 @@ class ParserTest extends munit.FunSuite:
         Buildin(
           BuildinFn.Comparison(
             BuildinFn.Greater,
-            Expr.LiteralExpr(
+            LiteralExpr(
               4.0
             ),
-            Expr.LiteralExpr(
+            LiteralExpr(
               3.0
             )
           )
@@ -155,45 +153,45 @@ class ParserTest extends munit.FunSuite:
         Buildin(
           BuildinFn.Logical(
             BuildinFn.And,
-            Expr.Grouping(
+            Grouping(
               expr = Buildin(
                 BuildinFn.Comparison(
                   BuildinFn.Less,
                   Buildin(
                     BuildinFn.Arthimetric(
                       BuildinFn.Add,
-                      Expr.LiteralExpr(
+                      LiteralExpr(
                         5.0
                       ),
-                      Expr.LiteralExpr(
+                      LiteralExpr(
                         6.0
                       )
                     )
                   ),
-                  Expr.LiteralExpr(
+                  LiteralExpr(
                     4.0
                   )
                 )
               )
             ),
-            Expr.Grouping(
+            Grouping(
               expr = Buildin(
                 BuildinFn.Comparison(
                   BuildinFn.Greater,
-                  Expr.Grouping(
+                  Grouping(
                     expr = Buildin(
                       BuildinFn.Arthimetric(
                         BuildinFn.Add,
-                        Expr.LiteralExpr(
+                        LiteralExpr(
                           7.0
                         ),
-                        Expr.LiteralExpr(
+                        LiteralExpr(
                           8.0
                         )
                       )
                     )
                   ),
-                  Expr.LiteralExpr(
+                  LiteralExpr(
                     3.0
                   )
                 )
@@ -204,6 +202,53 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(parse(ts), Right(want, Nil))
+    assertEquals(parseExpr(ts), Right(want, Nil))
+
+  }
+
+  test("parse_abs") {
+    println("fun x y -> x + y + 8")
+    val ts = List(
+      Keyword.Fun,
+      Literal.Identifier("x"),
+      Literal.Identifier("y"),
+      Operator.Arrow,
+      Literal.Identifier("x"),
+      Plus,
+      Literal.Identifier("y"),
+      Plus,
+      Number(
+        "8"
+      )
+    )
+
+
+
+    val body = Buildin(
+      BuildinFn.Arthimetric(
+        BuildinFn.Add,
+        Buildin(
+          BuildinFn.Arthimetric(
+            BuildinFn.Add,
+            Variable(Identifier("x")),
+            Variable(Identifier("y")),
+          )
+        ),
+        LiteralExpr(
+          8.0
+        )
+      )
+    )
+
+    val want = Abs(
+      variableName = Variable(Identifier("x")),
+      variableType = TAny,
+      body = Abs(
+        variableName = Variable(Identifier("y")),
+        variableType = TAny,
+        body = body
+      )
+    )
+    assertEquals(lambdaFunc(ts), Right(want, Nil))
 
   }

@@ -27,7 +27,7 @@ object Evaluator {
       // \x. f(x x)
 
       val innerAbs = Abs(
-        variableName = tX,
+        variableName = Variable(tX),
         variableType = TAny,
         body = App(
           body = App(
@@ -41,7 +41,7 @@ object Evaluator {
       // \f. (\x. f(x x))(\x f(x x))
 
       Abs(
-        variableName = tFinal,
+        variableName = Variable(tFinal),
         variableType = TAny,
         body = App(
           body = innerAbs,
@@ -59,7 +59,7 @@ object Evaluator {
       // \x. f(x x)
 
       val indirect = Abs(
-        variableName = tV,
+        variableName = Variable(tV),
         variableType = TAny,
         body = App(
           body = App(
@@ -71,7 +71,7 @@ object Evaluator {
       )
 
       val innerAbs = Abs(
-        variableName = tX,
+        variableName = Variable(tX),
         variableType = TAny,
         body = App(
           body = Variable(tFinal),
@@ -82,7 +82,7 @@ object Evaluator {
       // \f. (\x. f(x x))(\x f(x x))
 
       Abs(
-        variableName = tFinal,
+        variableName = Variable(tFinal),
         variableType = TAny,
         body = App(
           body = innerAbs,
@@ -151,7 +151,7 @@ object Evaluator {
           result <- if (valPred) eval(trueBranch) else eval(falseBranch)
         } yield result
       }
-      case Abs(variable, _, body) => me.pure(Closure(env, variable, body))
+      case Abs(variable, _, body) => me.pure(Closure(env, variable.name, body))
 
       case variable @ Variable(token) =>
         env.get(token) match {

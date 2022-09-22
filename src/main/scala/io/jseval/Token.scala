@@ -31,6 +31,7 @@ enum Operator(val lexeme: String) extends Token:
 
   // One or two character token
   case Bang extends Operator("!")
+  case Arrow extends Operator("->")
   case BangEqual extends Operator("!=")
   case Equal extends Operator("=")
   case EqualEqual extends Operator("==")

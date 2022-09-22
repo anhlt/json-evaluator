@@ -6,26 +6,74 @@ import Expression._
 import io.jseval.Expression
 import io.jseval.Expression.BuildinModule.BuildinFn
 import cats.instances._
+import io.jseval.TypModule._
+import scala.language.experimental
 
 object Parser {
 
-  enum Error(msg: String, tokens: List[Token]):
-    case ExpectExpression(tokens: List[Token])
-        extends Error("ExpectExpression", tokens)
+  enum Error(msg: String):
+    case ExpectExpression(tokens: List[Token]) extends Error("ExpectExpression")
     case ExpectToken(tokens: List[Token])
-        extends Error(s"Expected Token in $tokens", tokens)
-    case ExpectClosing(tokens: List[Token])
-        extends Error("Expect ')' after expression", tokens)
-    case InvalidAssignmentTartget(token: Token)
-        extends Error("Invalid assignment target.", List(token))
+        extends Error(s"Expected Token in $tokens")
 
-  def parse[F[_]](ts: List[Token])(implicit
-      a: MonadError[F, Error]
+    case ExpectIdentifer() extends Error(s"Expected Identifier")
+
+    case ExpectClosing(tokens: List[Token])
+        extends Error("Expect ')' after expression")
+    case InvalidAssignmentTartget(token: Token)
+        extends Error("Invalid assignment target.")
+
+  def parseExpr[F[_]](ts: List[Token])(implicit
+                                       a: MonadError[F, Error]
   ): F[ParserOut] = expression(ts)
 
   def expression[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, Error]): F[ParserOut] = or(tokens)
+
+//  def abs[F[_]](ts: List[Token], leftExpr: Expr): F[ParserOut] = ???
+
+  def lambdaFunc[F[_]](
+      tokens: List[Token]
+  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+
+    for {
+      funTokensAndRemaining <- consume(Keyword.Fun, tokens)
+      (funToken, rmn) = funTokensAndRemaining
+      result <- lambda(rmn)
+    } yield (result)
+  }
+
+  def lambda[F[_]](
+      tokens: List[Token]
+  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+
+    for {
+      // funTokensAndRemaining <- consume(Keyword.Fun, tokens)
+      // (funToken, rmn) = tokens
+      argAndRemaining <- identifier(tokens)
+      (ident, afterIdent) = argAndRemaining
+      variable <- asVariable(ident)
+      bodyAndRmn <- lambda(afterIdent).recoverWith(_ => lamdaBody(afterIdent))
+      // .recover(_ => expression(afterIdent))
+      (bodyExpr, afterLambda) = bodyAndRmn
+
+    } yield (
+      Abs(variableName = variable, variableType = TAny, body = bodyExpr),
+      afterLambda
+    )
+  }
+
+  def lamdaBody[F[_]](
+      tokens: List[Token]
+  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+    for {
+      arrowAndRmn <- consume(Operator.Arrow, tokens)
+      (arrow, rmn) = arrowAndRmn
+      bodyExpr <- expression(rmn)
+    } yield (bodyExpr)
+
+  }
 
   def or[F[_]](
       tokens: List[Token]
@@ -97,15 +145,17 @@ object Parser {
           fn <- unaryOp(token)
           result <- unary(rest)
           (expr, rmn) = result
-        } yield (fn(expr), rmn)).recoverWith(_ => primaryOrIdentiferOrGroup(tokens))
+        } yield (fn(expr), rmn)).recoverWith(_ =>
+          primaryOrIdentiferOrGroup(tokens)
+        )
 
       case _ =>
-        primaryOrIdentiferOrGroup(tokens) 
+        primaryOrIdentiferOrGroup(tokens)
     }
 
   def primaryOrIdentiferOrGroup[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] = 
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
     primary(tokens).orElse(identifier(tokens)).orElse(group(tokens))
 
   def primary[F[_]](
@@ -127,6 +177,16 @@ object Parser {
         a.pure(Expression.Variable(Literal.Identifier(name)), rest)
       case _ => a.raiseError(Error.ExpectExpression(tokens))
     }
+
+  def asVariable[F[_]](x: Expr)(implicit
+      a: MonadError[F, Error]
+  ): F[Variable] = {
+    x.match {
+      case v: Variable => a.pure(v)
+      case _           => a.raiseError(Error.ExpectIdentifer())
+    }
+
+  }
 
   def group[F[_]](
       tokens: List[Token]
@@ -158,12 +218,6 @@ object Parser {
     }
 
   type ParserOut = (Expr, List[Token])
-
-  type ExprParser = Either[Error, (Expr, List[Token])]
-
-  type BinaryOp = Token => Option[(Expr, Expr) => Expr]
-
-  type UnaryOp = Token => Option[Expr => Expr]
 
   def orOp[F[_]](token: Token)(implicit
       me: MonadError[F, Error]

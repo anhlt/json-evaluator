@@ -169,7 +169,7 @@ object TypeInfer {
       }
 
       case Abs(variable, variableType, body) => {
-        val newEnv = env + (variable -> variableType)
+        val newEnv = env + (variable.name -> variableType)
 
         infer(body)(me, newEnv).flatMap(bodyType =>
           me.pure(

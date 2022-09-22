@@ -70,7 +70,7 @@ class EvaluatorTest extends munit.FunSuite:
     // val value = Expr.LiteralValue(5)
 
     val bodyExpr = Abs(
-      variableName = token,
+      variableName = Variable(token),
       variableType = TInt,
       body = Buildin(
         BuildinFn.Arthimetric(
@@ -101,10 +101,10 @@ class EvaluatorTest extends munit.FunSuite:
     def sum(xExpression: Expr, yExpression: Expr): Expr = {
       val bodyExpr =
         Abs(
-          variableName = tokenX,
+          variableName = Variable(tokenX),
           variableType = TInt,
           Abs(
-            variableName = tokenY,
+            variableName = Variable(tokenY),
             variableType = TInt,
             body = Buildin(
               BuildinFn.Arthimetric(
@@ -140,14 +140,14 @@ class EvaluatorTest extends munit.FunSuite:
     // define \x x + 3
 
     val bodyExpr = Abs(
-      variableName = tokenX,
+      variableName = Variable(tokenX),
       variableType = TInt,
       body = Buildin(
         BuildinFn.Arthimetric(
           BuildinFn.Add,
           x,
           Expr.LiteralExpr(
-            3.0
+            3
           )
         )
       )
@@ -181,7 +181,7 @@ class EvaluatorTest extends munit.FunSuite:
     // define \x x + 3
 
     val bodyExpr = Abs(
-      variableName = tokenX,
+      variableName = Variable(tokenX),
       variableType = TInt,
       body = Buildin(
         BuildinFn.Arthimetric(
@@ -227,7 +227,7 @@ class EvaluatorTest extends munit.FunSuite:
     // \y => x + y
 
     val yEqualtoXplusY = Abs(
-      variableName = tokenY,
+      variableName = Variable(tokenY),
       variableType = TInt,
       body = Buildin(
         BuildinFn.Arthimetric(
@@ -241,7 +241,7 @@ class EvaluatorTest extends munit.FunSuite:
     // \x \y x + y
 
     val sumBody = Abs(
-      variableName = tokenX,
+      variableName = Variable(tokenX),
       variableType = TInt,
       yEqualtoXplusY
     )
@@ -309,10 +309,10 @@ class EvaluatorTest extends munit.FunSuite:
     // body = \factoria \x 1 if x == 0 else x * factorial(x - 1)
 
     val body = Abs(
-      variableName = factorialName,
+      variableName = Variable(factorialName),
       variableType = TAny,
       body = Abs(
-        variableName = tokenX,
+        variableName = Variable(tokenX),
         variableType = TAny,
         body = factExpr
       )
