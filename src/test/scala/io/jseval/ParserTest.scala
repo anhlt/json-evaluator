@@ -222,8 +222,6 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-
-
     val body = Buildin(
       BuildinFn.Arthimetric(
         BuildinFn.Add,
@@ -231,7 +229,7 @@ class ParserTest extends munit.FunSuite:
           BuildinFn.Arthimetric(
             BuildinFn.Add,
             Variable(Identifier("x")),
-            Variable(Identifier("y")),
+            Variable(Identifier("y"))
           )
         ),
         LiteralExpr(
@@ -250,5 +248,26 @@ class ParserTest extends munit.FunSuite:
       )
     )
     assertEquals(lambdaFunc(ts), Right(want, Nil))
+
+  }
+
+  test("parse_app") {
+    println("x (1, 2, b)")
+    val ts = List(
+      Literal.Identifier("x"),
+      Operator.LeftParen,
+      Literal.Number("1"),
+      Operator.Comma,
+      Literal.Number("2"),
+      Operator.Comma,
+      Literal.Identifier("b"),
+      Operator.RightParen
+    )
+
+    val want = App(
+      App(App(Variable(Identifier("x")), LiteralExpr(1.0)), LiteralExpr(2.0)),
+      Variable(Identifier("b"))
+    )
+    assertEquals(app(ts), Right(want, Nil))
 
   }

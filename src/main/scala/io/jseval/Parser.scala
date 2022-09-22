@@ -13,7 +13,8 @@ object Parser {
 
   enum Error(msg: String):
     case ExpectExpression(tokens: List[Token]) extends Error("ExpectExpression")
-    case ExpectToken(tokens: List[Token])
+    case ExpectToken(token: Token) extends Error(s"Expected Token in $token")
+    case ExpectTokens(tokens: List[Token])
         extends Error(s"Expected Token in $tokens")
 
     case ExpectIdentifer() extends Error(s"Expected Identifier")
@@ -24,14 +25,50 @@ object Parser {
         extends Error("Invalid assignment target.")
 
   def parseExpr[F[_]](ts: List[Token])(implicit
-                                       a: MonadError[F, Error]
+      a: MonadError[F, Error]
   ): F[ParserOut] = expression(ts)
 
   def expression[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, Error]): F[ParserOut] = or(tokens)
 
-//  def abs[F[_]](ts: List[Token], leftExpr: Expr): F[ParserOut] = ???
+  // x (a, b, c)
+
+  def app[F[_]](
+      tokens: List[Token]
+  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+
+    for {
+      bodyAndRmn <- expression(tokens)
+      (body, rmn) = bodyAndRmn
+      leftParenAndRmn <- consume(Operator.LeftParen, rmn)
+      (_, rmnAfterLP) = leftParenAndRmn
+      argAndRemaining <- appArgs(body, rmnAfterLP)
+      (arg, rmnAfterArg) = argAndRemaining
+      rParenAndRmn <- consume(Operator.RightParen, rmnAfterArg)
+    } yield (arg, rParenAndRmn._2)
+
+  }
+
+  def appArgs[F[_]](
+      previousExpr: Expr,
+      tokens: List[Token]
+  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+
+    for {
+      argAndRemaining <- expression(tokens)
+      (arg, rmn) = argAndRemaining
+      nextResult <- (for {
+        commaAndTokens <- consume(Operator.Comma, rmn)
+        (comma, afterComma) = commaAndTokens
+        rs <- appArgs(App(previousExpr, arg), afterComma)
+      } yield (rs)).recover({ case Error.ExpectToken(Operator.Comma) =>
+        (App(previousExpr, arg), rmn)
+      })
+
+    } yield nextResult
+
+  }
 
   def lambdaFunc[F[_]](
       tokens: List[Token]
@@ -213,8 +250,14 @@ object Parser {
       tokens: List[Token]
   )(implicit a: MonadError[F, Error]): F[(Token, List[Token])] =
     tokens.headOption match {
-      case Some(expect) => a.pure(expect, tokens.tail)
-      case _            => a.raiseError(Error.ExpectExpression(tokens))
+      case Some(token) => {
+        if (token == expect) {
+          a.pure((expect, tokens.tail))
+        } else {
+          a.raiseError(Error.ExpectToken(expect))
+        }
+      }
+      case _ => a.raiseError(Error.ExpectToken(expect))
     }
 
   type ParserOut = (Expr, List[Token])
@@ -228,9 +271,7 @@ object Parser {
       case _ =>
         me.raiseError(
           Error.ExpectToken(
-            List(
-              Keyword.Or
-            )
+            Keyword.Or
           )
         )
 
@@ -243,9 +284,7 @@ object Parser {
       case _ =>
         me.raiseError(
           Error.ExpectToken(
-            List(
-              Keyword.And
-            )
+            Keyword.And
           )
         )
 
@@ -261,7 +300,7 @@ object Parser {
         )
       case _ =>
         me.raiseError(
-          Error.ExpectToken(
+          Error.ExpectTokens(
             List(
               Operator.EqualEqual,
               Operator.BangEqual
@@ -289,7 +328,7 @@ object Parser {
         )
       case _ =>
         me.raiseError(
-          Error.ExpectToken(
+          Error.ExpectTokens(
             List(
               Operator.Less,
               Operator.LessEqual,
@@ -310,7 +349,7 @@ object Parser {
         me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Sub, l, r)))
 
       case _ =>
-        me.raiseError(Error.ExpectToken(List(Operator.Plus, Operator.Minus)))
+        me.raiseError(Error.ExpectTokens(List(Operator.Plus, Operator.Minus)))
 
   def factorOp[F[_]](token: Token)(implicit
       me: MonadError[F, Error]
@@ -322,7 +361,7 @@ object Parser {
       case Operator.Slash =>
         me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Div, l, r)))
       case _ =>
-        me.raiseError(Error.ExpectToken(List(Operator.Star, Operator.Slash)))
+        me.raiseError(Error.ExpectTokens(List(Operator.Star, Operator.Slash)))
 
   def unaryOp[F[_]](token: Token)(implicit
       me: MonadError[F, Error]
@@ -333,6 +372,6 @@ object Parser {
       case x @ Operator.Bang =>
         me.pure(x => Buildin(BuildinFn.Unary(BuildinFn.Not, x)))
       case _ =>
-        me.raiseError(Error.ExpectToken(List(Operator.Minus, Operator.Bang)))
+        me.raiseError(Error.ExpectTokens(List(Operator.Minus, Operator.Bang)))
 
 }

@@ -261,7 +261,7 @@ class EvaluatorTest extends munit.FunSuite:
     // Let z = 4
     // Let u = 3
     // Let sum = x y -> x + y
-    // in sum(z + u)
+    // in sum(z , u)
 
     val finalBind = Binding(
       recursive = false,
