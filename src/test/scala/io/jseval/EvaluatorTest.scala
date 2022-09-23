@@ -157,7 +157,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     def inc3(x: Double) = Binding(
       recursive = false,
-      variableName = sumToken,
+      variableName = Variable(sumToken),
       body = bodyExpr,
       expr = App(
         body = Variable(sumToken),
@@ -198,7 +198,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val incBind = Binding(
       recursive = false,
-      variableName = incToken,
+      variableName = Variable(incToken),
       body = bodyExpr,
       expr = App(
         body = Variable(incToken),
@@ -212,7 +212,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val finalBind = Binding(
       recursive = false,
-      variableName = tokenY,
+      variableName = Variable(tokenY),
       body = Expr.LiteralExpr(1.0),
       expr = incBind
     )
@@ -250,7 +250,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val sum = Binding(
       recursive = false,
-      variableName = sumToken,
+      variableName = Variable(sumToken),
       body = sumBody,
       expr = App(
         App(body = Variable(sumToken), arg = Expr.Variable(tokenZ)),
@@ -265,11 +265,11 @@ class EvaluatorTest extends munit.FunSuite:
 
     val finalBind = Binding(
       recursive = false,
-      variableName = tokenZ,
-      body = Expr.LiteralExpr(4.0),
+      variableName = Variable(tokenZ),
+      body = LiteralExpr(4.0),
       expr = Binding(
         recursive = false,
-        variableName = tokenU,
+        variableName = Variable(tokenU),
         body = Expr.LiteralExpr(3.0),
         expr = sum
       )
@@ -324,7 +324,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val binding = Binding(
       recursive = true,
-      variableName = factorialName,
+      variableName = Variable(factorialName),
       body = facApp,
       expr = App(
         body = factorialVariable, //

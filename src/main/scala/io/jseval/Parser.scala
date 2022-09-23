@@ -24,22 +24,66 @@ object Parser {
     case InvalidAssignmentTartget(token: Token)
         extends Error("Invalid assignment target.")
 
-  def parseExpr[F[_]](ts: List[Token])(implicit
-      a: MonadError[F, Error]
-  ): F[ParserOut] = expression(ts)
+  def parseExpr[F[_]](f: List[Token] => F[ParserOut])(tokens: List[Token])(
+      implicit a: MonadError[F, Error]
+  ): F[ParserOut] = for {
+    rs <- f(tokens)
+    rs2 <- consume(Operator.Semicolon, rs._2)
+  } yield (rs._1, rs2._2)
 
   def expression[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] = or(tokens)
+  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+    app(tokens)
+      .orElse(lambdaFunc(tokens))
+      .orElse(or(tokens))
+
+  // Let x = 5
+  // Let y = 6
+  // Let sum = fun g h -> g + h
+  // in sum (x, y)
+
+  def let[F[_]](
+      tokens: List[Token]
+  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+
+    for {
+      letAndRmn <- consume(Keyword.Let, tokens)
+      (letKw, rmn) = letAndRmn
+      identiferAndRmn <- identifier(rmn)
+      _ <- me.pure(println(s"identiferAndRmn $identiferAndRmn"))
+      (identifier, afterIdent) = identiferAndRmn
+      variable <- asVariable(identifier)
+      equalAndRmn <- consume(Operator.Equal, afterIdent)
+      exprAndRmn <- expression(equalAndRmn._2)
+      (body, afterExpr) = exprAndRmn
+      result <- (for {
+        rs <- in(afterExpr)
+      } yield rs).recoverWith({ case Error.ExpectToken(Keyword.In) =>
+        let(afterExpr)
+      })
+
+    } yield (Binding(false, variable, body, result._1), result._2)
+  }
+
+  def in[F[_]](
+      tokens: List[Token]
+  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+
+    for {
+      inAndRmn <- consume(Keyword.In, tokens)
+      (_, rmn) = inAndRmn
+      exprAndRmn <- expression(rmn)
+    } yield exprAndRmn
+  }
 
   // x (a, b, c)
-
   def app[F[_]](
       tokens: List[Token]
   )(implicit me: MonadError[F, Error]): F[ParserOut] = {
 
     for {
-      bodyAndRmn <- expression(tokens)
+      bodyAndRmn <- identifier(tokens)
       (body, rmn) = bodyAndRmn
       leftParenAndRmn <- consume(Operator.LeftParen, rmn)
       (_, rmnAfterLP) = leftParenAndRmn

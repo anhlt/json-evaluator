@@ -185,7 +185,7 @@ object Expression {
   case class Grouping(expr: Expr) extends Expr
   case class Binding(
       recursive: Boolean,
-      variableName: Token,
+      variableName: Variable,
       body: Expr,
       expr: Expr
   ) extends Expr

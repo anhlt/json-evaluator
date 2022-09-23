@@ -72,6 +72,7 @@ object Scanner {
 
   val allTokens =
     keywords ++ List(
+      Operator.Arrow.parse,
       Operator.LeftParen.parse,
       Operator.RightParen.parse,
       Operator.LeftBrace.parse,

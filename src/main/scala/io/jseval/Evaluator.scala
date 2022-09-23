@@ -186,13 +186,13 @@ object Evaluator {
 
       case Binding(
             recursive: Boolean,
-            variableName: Token,
+            variableName: Variable,
             body: Expr,
             expr: Expr
           ) =>
         for {
           bodyVal <- eval(body) // enclosure
-          newEnv = env + (variableName -> bodyVal)
+          newEnv = env + (variableName.name -> bodyVal)
           result <- eval(expr)(me, fr, sc, newEnv)
           _ <- sc.info(s"""
             |Binding

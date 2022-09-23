@@ -151,7 +151,7 @@ class TypeInferTest extends munit.FunSuite:
 
     val sum = Binding(
       recursive = false,
-      variableName = sumToken,
+      variableName = Variable(sumToken),
       body = sumBody,
       expr = App(
         App(body = Variable(sumToken), arg = Expr.Variable(tokenZ)),
@@ -165,11 +165,11 @@ class TypeInferTest extends munit.FunSuite:
 
     val finalBind = Binding(
       recursive = false,
-      variableName = tokenZ,
+      variableName = Variable(tokenZ),
       body = Expr.LiteralExpr(4.0),
       expr = Binding(
         recursive = false,
-        variableName = tokenU,
+        variableName = Variable(tokenU),
         body = Expr.LiteralExpr(3.0),
         expr = sum
       )
@@ -214,7 +214,7 @@ class TypeInferTest extends munit.FunSuite:
 
     val sum = Binding(
       recursive = false,
-      variableName = sumToken,
+      variableName = Variable(sumToken),
       body = sumBody,
       expr = App(
         App(body = Variable(sumToken), arg = Expr.Variable(tokenZ)),
@@ -228,11 +228,11 @@ class TypeInferTest extends munit.FunSuite:
 
     val finalBind = Binding(
       recursive = false,
-      variableName = tokenZ,
+      variableName = Variable(tokenZ),
       body = Expr.LiteralExpr(4.0),
       expr = Binding(
         recursive = false,
-        variableName = tokenU,
+        variableName = Variable(tokenU),
         body = Expr.LiteralExpr("3.0"),
         expr = sum
       )

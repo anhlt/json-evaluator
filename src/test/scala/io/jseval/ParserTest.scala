@@ -15,17 +15,29 @@ import io.jseval.TypModule._
 
 class ParserTest extends munit.FunSuite:
 
+  val tokenX = Literal.Identifier("x")
+  val tokenY = Literal.Identifier("y")
+  val tokenZ = Literal.Identifier("z")
+  val tokenU = Literal.Identifier("u")
+  val tokenN = Literal.Identifier("n")
+  val factorialName = Literal.Identifier("f")
+
+  val sumToken = Literal.Identifier("sum")
+
+  val x = Variable(tokenX)
+  val y = Variable(tokenY)
+
   test(s"expression primary number") {
     val ts = List(Literal.Number("42"))
     val expected = Expression.LiteralExpr(42)
 
-    assertEquals(parseExpr(ts), Right(expected, Nil))
+    assertEquals(expression(ts), Right(expected, Nil))
   }
 
   test("expression primary string") {
     val ts = List(Literal.Str("you rox!"))
     val want = LiteralExpr("you rox!")
-    assertEquals(parseExpr(ts), Right(want, Nil))
+    assertEquals(expression(ts), Right(want, Nil))
 
   }
 
@@ -44,7 +56,7 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(parseExpr(ts), Right(want, Nil))
+    assertEquals(expression(ts), Right(want, Nil))
   }
 
   test("parse_factor") {
@@ -88,7 +100,7 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(parseExpr(ts), Right(want, Nil))
+    assertEquals(expression(ts), Right(want, Nil))
 
   }
 
@@ -202,12 +214,12 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(parseExpr(ts), Right(want, Nil))
+    assertEquals(expression(ts), Right(want, Nil))
 
   }
 
   test("parse_abs") {
-    println("fun x y -> x + y + 8")
+    println("fun x y -> x + y + 8;")
     val ts = List(
       Keyword.Fun,
       Literal.Identifier("x"),
@@ -269,5 +281,109 @@ class ParserTest extends munit.FunSuite:
       Variable(Identifier("b"))
     )
     assertEquals(app(ts), Right(want, Nil))
+
+  }
+
+  test("parse_nested_app") {
+    println("f (1, 2, g(1, 2));")
+    val ts = List(
+      Literal.Identifier("f"),
+      Operator.LeftParen,
+      Literal.Number("1"),
+      Operator.Comma,
+      Literal.Number("2"),
+      Operator.Comma,
+      Literal.Identifier("g"),
+      Operator.LeftParen,
+      Literal.Number("1"),
+      Operator.Comma,
+      Literal.Number("2"),
+      Operator.RightParen,
+      Operator.RightParen
+    )
+
+    val want = App(
+      App(App(Variable(Identifier("f")), LiteralExpr(1.0)), LiteralExpr(2.0)),
+      App(
+        body = App(
+          body = Variable(
+            name = Identifier(
+              lexeme = "g"
+            )
+          ),
+          arg = LiteralExpr(
+            value = 1.0
+          )
+        ),
+        arg = LiteralExpr(
+          value = 2.0
+        )
+      )
+    )
+    assertEquals(expression(ts), Right(want, Nil))
+
+  }
+
+  test("binding") {
+    val input = """
+      |let z = 4
+      |let u = 3
+      |let sum = fun x y -> x + y
+      |in sum(z, u)
+      """.stripMargin
+
+    val tokens = Scanner.parse(input)
+
+    val result = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- let(tokens)
+
+    } yield bindExpr
+
+    val yEqualtoXplusY = Abs(
+      variableName = Variable(tokenY),
+      variableType = TAny,
+      body = Buildin(
+        BuildinFn.Arthimetric(
+          BuildinFn.Add,
+          x,
+          y
+        )
+      )
+    )
+
+    // \x \y x + y
+
+    val sumBody = Abs(
+      variableName = Variable(tokenX),
+      variableType = TAny,
+      yEqualtoXplusY
+    )
+
+    // binding sum = \x \y x + y
+
+    val sum = Binding(
+      recursive = false,
+      variableName = Variable(sumToken),
+      body = sumBody,
+      expr = App(
+        App(body = Variable(sumToken), arg = Variable(tokenZ)),
+        arg = Variable(tokenU)
+      )
+    )
+
+    val want = Binding(
+      recursive = false,
+      variableName = Variable(tokenZ),
+      body = LiteralExpr(4.0),
+      expr = Binding(
+        recursive = false,
+        variableName = Variable(tokenU),
+        body = LiteralExpr(3.0),
+        expr = sum
+      )
+    )
+
+    assertEquals(result, Right(want, Nil))
 
   }
