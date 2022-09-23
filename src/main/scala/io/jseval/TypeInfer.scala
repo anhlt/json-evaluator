@@ -205,13 +205,13 @@ object TypeInfer {
 
       case Binding(
             recursive: Boolean,
-            variableName: Token,
+            variableName: Variable,
             body: Expr,
             expr: Expr
           ) =>
         for {
           bodyVal <- infer(body) // enclosure
-          newEnv = env + (variableName -> bodyVal)
+          newEnv = env + (variableName.name -> bodyVal)
           result <- infer(expr)(me, newEnv)
         } yield result
     }

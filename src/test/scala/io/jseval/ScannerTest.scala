@@ -18,7 +18,7 @@ class ScannerTest extends munit.FunSuite {
 
   test("logic ") {
     val str = """
-  	4 > 3 OR (5 + 6 < 4) AND ((7 + 8) > 3)
+  	4 > 3 or (5 + 6 < 4) and ((7 + 8) > 3)
 
   	""".stripMargin
 
@@ -67,7 +67,5 @@ class ScannerTest extends munit.FunSuite {
     assertEquals(Scanner.parse(str), expected)
 
   }
-
-
 
 }
