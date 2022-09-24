@@ -34,10 +34,10 @@ object Parser {
   def expression[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, Error]): F[ParserOut] =
-    app(tokens)
-      .orElse(lambdaFunc(tokens))
-      .orElse(let(tokens))
+    let(tokens)
       .orElse(condition(tokens))
+      .orElse(lambdaFunc(tokens))
+      .orElse(app(tokens))
       .orElse(or(tokens))
 
   // Let x = 5
@@ -75,9 +75,21 @@ object Parser {
     for {
       letAndRmn <- consume(Keyword.Let, tokens)
       (letKw, rmn) = letAndRmn
-      identiferAndRmn <- identifier(rmn)
+      _ <- me.pure(println(s"after let $rmn"))
+      isRecursive <- rec(rmn)
+
+      _ <- me.pure(println(s"after rec $isRecursive"))
+      (isRec, afterRec) = isRecursive
+      identiferAndRmn <- identifier(afterRec)
+
+      _ <- me.pure(println(s"after ident "))
+
       variable <- asVariable(identiferAndRmn.expr)
+
       equalAndRmn <- consume(Operator.Equal, identiferAndRmn.rmn)
+
+      _ <- me.pure(println(s"after equality"))
+
       exprAndRmn <- expression(equalAndRmn._2)
       result <- (for {
         rs <- in(exprAndRmn.rmn)
@@ -86,24 +98,17 @@ object Parser {
       })
 
     } yield ParserOut(
-      Binding(false, variable, exprAndRmn.expr, result._1),
+      Binding(isRec, variable, exprAndRmn.expr, result._1),
       result._2
     )
   }
 
   def rec[F[_]](
-      expect: Token,
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[(Token, List[Token])] =
+  )(implicit a: MonadError[F, Error]): F[(Boolean, List[Token])] =
     tokens.headOption match {
-      case Some(token) => {
-        if (token == expect) {
-          a.pure((expect, tokens.tail))
-        } else {
-          a.raiseError(Error.ExpectToken(expect))
-        }
-      }
-      case _ => a.raiseError(Error.ExpectToken(expect))
+      case Some(Keyword.Rec) => a.pure(true, tokens.tail)
+      case _                 => a.pure(false, tokens)
     }
 
   def in[F[_]](
@@ -275,7 +280,9 @@ object Parser {
   def primaryOrIdentiferOrGroup[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, Error]): F[ParserOut] =
-    primary(tokens).orElse(identifier(tokens)).orElse(group(tokens))
+    app(tokens).orElse(
+      primary(tokens).orElse(identifier(tokens)).orElse(group(tokens))
+    )
 
   def primary[F[_]](
       tokens: List[Token]

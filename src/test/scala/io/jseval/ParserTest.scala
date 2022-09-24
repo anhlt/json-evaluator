@@ -12,6 +12,9 @@ import Keyword._
 import Operator._
 import Literal._
 import io.jseval.TypModule._
+import io.jseval.Expression.BuildinModule.BuildinFn.Arthimetric
+import io.jseval.Expression.BuildinModule.BuildinFn.Sub
+import io.jseval.Expression.BuildinModule.BuildinFn.Mul
 
 class ParserTest extends munit.FunSuite:
 
@@ -20,12 +23,13 @@ class ParserTest extends munit.FunSuite:
   val tokenZ = Literal.Identifier("z")
   val tokenU = Literal.Identifier("u")
   val tokenN = Literal.Identifier("n")
-  val factorialName = Literal.Identifier("f")
+  val factorialName = Literal.Identifier("fact")
 
   val sumToken = Literal.Identifier("sum")
 
   val x = Variable(tokenX)
   val y = Variable(tokenY)
+  val factorialVariable = Variable(factorialName)
 
   test(s"expression primary number") {
     val ts = List(Literal.Number("42"))
@@ -432,41 +436,83 @@ class ParserTest extends munit.FunSuite:
 
   }
 
+  test("complex_func") {
+
+    val input = """
+    fun x -> if x == 0 then 1 else x * fact(x - 1)
+    """
+
+    val xMinus1 = Buildin(
+      Arthimetric(Sub, x, LiteralExpr(1))
+    )
+
+    val falseBranch = Buildin(
+      Arthimetric(Mul, x, App(body = factorialVariable, arg = xMinus1))
+    )
+
+    val comparision = Buildin(
+      BuildinFn.Comparison(BuildinFn.Equal, x, LiteralExpr(0))
+    )
+
+    val factExpr = Cond(
+      pred = comparision,
+      trueBranch = LiteralExpr(1),
+      falseBranch = falseBranch
+    )
+
+    val want = Abs(
+      variableName = Variable(tokenX),
+      variableType = TAny,
+      body = factExpr
+    )
+
+    val result = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- expression(tokens)
+
+    } yield bindExpr
+
+    assertEquals(result, Right(ParserOut(want, Nil)))
+
+  }
+
   test("binding_rec") {
     val input = """
-      |let fact = fun x -> if x <= 1 then 1 else x * fact(x - 1) 
-      |in fact(5)
-      """.stripMargin
+    |let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+    |in fact(5)
+    """.stripMargin
 
+    val xMinus1 = Buildin(
+      Arthimetric(Sub, x, LiteralExpr(1))
+    )
 
+    val falseBranch = Buildin(
+      Arthimetric(Mul, x, App(body = factorialVariable, arg = xMinus1))
+    )
 
-    val want = Cond(
-      pred = Buildin(
-        fn = BuildinFn.Logical(
-          fn = BuildinFn.And,
-          opA = Grouping(
-            expr = Buildin(
-              fn = BuildinFn.Comparison(
-                fn = BuildinFn.Greater,
-                opA = LiteralExpr(
-                  value = 4.0
-                ),
-                opB = LiteralExpr(
-                  value = 5.0
-                )
-              )
-            )
-          ),
-          opB = LiteralExpr(
-            value = true
-          )
-        )
-      ),
-      trueBranch = LiteralExpr(
-        value = 1.0
-      ),
-      falseBranch = LiteralExpr(
-        value = 2.0
+    val comparision = Buildin(
+      BuildinFn.Comparison(BuildinFn.Equal, x, LiteralExpr(0))
+    )
+
+    val factExpr = Cond(
+      pred = comparision,
+      trueBranch = LiteralExpr(1),
+      falseBranch = falseBranch
+    )
+
+    val sumBody = Abs(
+      variableName = Variable(tokenX),
+      variableType = TAny,
+      body = factExpr
+    )
+
+    val want = Binding(
+      recursive = true,
+      variableName = factorialVariable,
+      body = sumBody,
+      expr = App(
+        body = factorialVariable,
+        arg = LiteralExpr(5.0)
       )
     )
 
