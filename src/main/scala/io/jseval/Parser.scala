@@ -29,19 +29,44 @@ object Parser {
   ): F[ParserOut] = for {
     rs <- f(tokens)
     rs2 <- consume(Operator.Semicolon, rs._2)
-  } yield (rs._1, rs2._2)
+  } yield ParserOut(rs._1, rs2._2)
 
   def expression[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, Error]): F[ParserOut] =
     app(tokens)
       .orElse(lambdaFunc(tokens))
+      .orElse(let(tokens))
+      .orElse(condition(tokens))
       .orElse(or(tokens))
 
   // Let x = 5
   // Let y = 6
   // Let sum = fun g h -> g + h
   // in sum (x, y)
+
+  def condition[F[_]](
+      tokens: List[Token]
+  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+
+    for {
+      ifAndRmn <- consume(expect = Keyword.If, tokens = tokens)
+      (_, afterIf) = ifAndRmn
+      condAndRmn <- expression(afterIf)
+      thenAndRmn <- consume(Keyword.Then, condAndRmn.rmn)
+      trueExprAndRmn <- expression(thenAndRmn._2)
+      elseAndRmn <- consume(Keyword.Else, trueExprAndRmn.rmn)
+      falseExprAndRmn <- expression(elseAndRmn._2)
+
+    } yield ParserOut(
+      Cond(
+        condAndRmn.expr,
+        trueBranch = trueExprAndRmn.expr,
+        falseBranch = falseExprAndRmn.expr
+      ),
+      falseExprAndRmn.rmn
+    )
+  }
 
   def let[F[_]](
       tokens: List[Token]
@@ -51,20 +76,35 @@ object Parser {
       letAndRmn <- consume(Keyword.Let, tokens)
       (letKw, rmn) = letAndRmn
       identiferAndRmn <- identifier(rmn)
-      _ <- me.pure(println(s"identiferAndRmn $identiferAndRmn"))
-      (identifier, afterIdent) = identiferAndRmn
-      variable <- asVariable(identifier)
-      equalAndRmn <- consume(Operator.Equal, afterIdent)
+      variable <- asVariable(identiferAndRmn.expr)
+      equalAndRmn <- consume(Operator.Equal, identiferAndRmn.rmn)
       exprAndRmn <- expression(equalAndRmn._2)
-      (body, afterExpr) = exprAndRmn
       result <- (for {
-        rs <- in(afterExpr)
+        rs <- in(exprAndRmn.rmn)
       } yield rs).recoverWith({ case Error.ExpectToken(Keyword.In) =>
-        let(afterExpr)
+        let(exprAndRmn.rmn)
       })
 
-    } yield (Binding(false, variable, body, result._1), result._2)
+    } yield ParserOut(
+      Binding(false, variable, exprAndRmn.expr, result._1),
+      result._2
+    )
   }
+
+  def rec[F[_]](
+      expect: Token,
+      tokens: List[Token]
+  )(implicit a: MonadError[F, Error]): F[(Token, List[Token])] =
+    tokens.headOption match {
+      case Some(token) => {
+        if (token == expect) {
+          a.pure((expect, tokens.tail))
+        } else {
+          a.raiseError(Error.ExpectToken(expect))
+        }
+      }
+      case _ => a.raiseError(Error.ExpectToken(expect))
+    }
 
   def in[F[_]](
       tokens: List[Token]
@@ -84,13 +124,11 @@ object Parser {
 
     for {
       bodyAndRmn <- identifier(tokens)
-      (body, rmn) = bodyAndRmn
-      leftParenAndRmn <- consume(Operator.LeftParen, rmn)
+      leftParenAndRmn <- consume(Operator.LeftParen, bodyAndRmn.rmn)
       (_, rmnAfterLP) = leftParenAndRmn
-      argAndRemaining <- appArgs(body, rmnAfterLP)
-      (arg, rmnAfterArg) = argAndRemaining
-      rParenAndRmn <- consume(Operator.RightParen, rmnAfterArg)
-    } yield (arg, rParenAndRmn._2)
+      argAndRemaining <- appArgs(bodyAndRmn.expr, rmnAfterLP)
+      rParenAndRmn <- consume(Operator.RightParen, argAndRemaining.rmn)
+    } yield ParserOut(argAndRemaining.expr, rParenAndRmn._2)
 
   }
 
@@ -101,13 +139,12 @@ object Parser {
 
     for {
       argAndRemaining <- expression(tokens)
-      (arg, rmn) = argAndRemaining
       nextResult <- (for {
-        commaAndTokens <- consume(Operator.Comma, rmn)
+        commaAndTokens <- consume(Operator.Comma, argAndRemaining.rmn)
         (comma, afterComma) = commaAndTokens
-        rs <- appArgs(App(previousExpr, arg), afterComma)
+        rs <- appArgs(App(previousExpr, argAndRemaining.expr), afterComma)
       } yield (rs)).recover({ case Error.ExpectToken(Operator.Comma) =>
-        (App(previousExpr, arg), rmn)
+        ParserOut(App(previousExpr, argAndRemaining.expr), argAndRemaining.rmn)
       })
 
     } yield nextResult
@@ -130,18 +167,16 @@ object Parser {
   )(implicit me: MonadError[F, Error]): F[ParserOut] = {
 
     for {
-      // funTokensAndRemaining <- consume(Keyword.Fun, tokens)
-      // (funToken, rmn) = tokens
       argAndRemaining <- identifier(tokens)
-      (ident, afterIdent) = argAndRemaining
-      variable <- asVariable(ident)
-      bodyAndRmn <- lambda(afterIdent).recoverWith(_ => lamdaBody(afterIdent))
+      variable <- asVariable(argAndRemaining.expr)
+      bodyAndRmn <- lambda(argAndRemaining.rmn).recoverWith(_ =>
+        lamdaBody(argAndRemaining.rmn)
+      )
       // .recover(_ => expression(afterIdent))
-      (bodyExpr, afterLambda) = bodyAndRmn
 
-    } yield (
-      Abs(variableName = variable, variableType = TAny, body = bodyExpr),
-      afterLambda
+    } yield ParserOut(
+      Abs(variableName = variable, variableType = TAny, body = bodyAndRmn.expr),
+      bodyAndRmn.rmn
     )
   }
 
@@ -186,16 +221,20 @@ object Parser {
           op(token)
             .flatMap(fn => {
               for {
-                result <- descendantFn(rest)
-                (rightExpr, rmn) = result
-                continueResult <- matchOp(rmn, fn(leftExpr, rightExpr))
+                rightExprAndRmn <- descendantFn(rest)
+                continueResult <- matchOp(
+                  rightExprAndRmn.rmn,
+                  fn(leftExpr, rightExprAndRmn.expr)
+                )
               } yield continueResult
             })
-            .orElse(a.pure(leftExpr, ts))
+            .orElse(a.pure(ParserOut(leftExpr, ts)))
 
-        case _ => a.pure(leftExpr, ts)
+        case _ => a.pure(ParserOut(leftExpr, ts))
 
-    descendantFn(tokens).flatMap((expr, rest) => matchOp(rest, expr))
+    descendantFn(tokens).flatMap((parserOut) =>
+      matchOp(parserOut.rmn, parserOut.expr)
+    )
 
   def equality[F[_]](
       tokens: List[Token]
@@ -225,8 +264,7 @@ object Parser {
         (for {
           fn <- unaryOp(token)
           result <- unary(rest)
-          (expr, rmn) = result
-        } yield (fn(expr), rmn)).recoverWith(_ =>
+        } yield (ParserOut(fn(result.expr), result.rmn))).recoverWith(_ =>
           primaryOrIdentiferOrGroup(tokens)
         )
 
@@ -244,10 +282,13 @@ object Parser {
   )(implicit a: MonadError[F, Error]): F[ParserOut] =
     tokens match
       case Literal.Number(l) :: rest =>
-        a.pure(Expression.LiteralExpr(l.toDouble), rest)
-      case Literal.Str(l) :: rest => a.pure(Expression.LiteralExpr(l), rest)
-      case Keyword.True :: rest   => a.pure(Expression.LiteralExpr(true), rest)
-      case Keyword.False :: rest  => a.pure(Expression.LiteralExpr(false), rest)
+        a.pure(ParserOut(Expression.LiteralExpr(l.toDouble), rest))
+      case Literal.Str(l) :: rest =>
+        a.pure(ParserOut(Expression.LiteralExpr(l), rest))
+      case Keyword.True :: rest =>
+        a.pure(ParserOut(Expression.LiteralExpr(true), rest))
+      case Keyword.False :: rest =>
+        a.pure(ParserOut(Expression.LiteralExpr(false), rest))
       case _ => a.raiseError(Error.ExpectExpression(tokens))
 
   def identifier[F[_]](
@@ -255,7 +296,7 @@ object Parser {
   )(implicit a: MonadError[F, Error]): F[ParserOut] =
     tokens match {
       case Literal.Identifier(name) :: rest =>
-        a.pure(Expression.Variable(Literal.Identifier(name)), rest)
+        a.pure(ParserOut(Expression.Variable(Literal.Identifier(name)), rest))
       case _ => a.raiseError(Error.ExpectExpression(tokens))
     }
 
@@ -282,11 +323,11 @@ object Parser {
   def parenBody[F[F]](
       tokens: List[Token]
   )(implicit a: MonadError[F, Error]): F[ParserOut] =
-    expression(tokens).flatMap((expr, rest) =>
-      rest match
+    expression(tokens).flatMap((parserOut) =>
+      parserOut.rmn match
         case Operator.RightParen :: rmn =>
-          a.pure(Expression.Grouping(expr), rmn)
-        case _ => a.raiseError(Error.ExpectClosing(rest))
+          a.pure(ParserOut(Expression.Grouping(parserOut.expr), rmn))
+        case _ => a.raiseError(Error.ExpectClosing(parserOut.rmn))
     )
 
   def consume[F[_]](
@@ -304,7 +345,7 @@ object Parser {
       case _ => a.raiseError(Error.ExpectToken(expect))
     }
 
-  type ParserOut = (Expr, List[Token])
+  case class ParserOut(expr: Expr, rmn: List[Token])
 
   def orOp[F[_]](token: Token)(implicit
       me: MonadError[F, Error]

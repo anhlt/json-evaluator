@@ -53,6 +53,10 @@ enum Keyword(val lexeme: String) extends Token:
   case Let extends Keyword("let")
   case In extends Keyword("in")
   case Fun extends Keyword("fun")
+  case Rec extends Keyword("rec")
+  case If extends Keyword("if")
+  case Then extends Keyword("then")
+  case Else extends Keyword("else")
 
   // Type
   case String extends Keyword("string")

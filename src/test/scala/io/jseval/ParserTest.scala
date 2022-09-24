@@ -31,13 +31,15 @@ class ParserTest extends munit.FunSuite:
     val ts = List(Literal.Number("42"))
     val expected = Expression.LiteralExpr(42)
 
-    assertEquals(expression(ts), Right(expected, Nil))
+    assertEquals(expression(ts), Right(ParserOut(expected, Nil)))
+
   }
 
   test("expression primary string") {
     val ts = List(Literal.Str("you rox!"))
     val want = LiteralExpr("you rox!")
-    assertEquals(expression(ts), Right(want, Nil))
+
+    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
 
   }
 
@@ -56,7 +58,7 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(expression(ts), Right(want, Nil))
+    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
   }
 
   test("parse_factor") {
@@ -100,7 +102,7 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(expression(ts), Right(want, Nil))
+    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
 
   }
 
@@ -214,8 +216,7 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(expression(ts), Right(want, Nil))
-
+    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
   }
 
   test("parse_abs") {
@@ -259,8 +260,7 @@ class ParserTest extends munit.FunSuite:
         body = body
       )
     )
-    assertEquals(lambdaFunc(ts), Right(want, Nil))
-
+    assertEquals(lambdaFunc(ts), Right(ParserOut(want, Nil)))
   }
 
   test("parse_app") {
@@ -280,7 +280,7 @@ class ParserTest extends munit.FunSuite:
       App(App(Variable(Identifier("x")), LiteralExpr(1.0)), LiteralExpr(2.0)),
       Variable(Identifier("b"))
     )
-    assertEquals(app(ts), Right(want, Nil))
+    assertEquals(app(ts), Right(ParserOut(want, Nil)))
 
   }
 
@@ -320,7 +320,7 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(expression(ts), Right(want, Nil))
+    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
 
   }
 
@@ -384,6 +384,98 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(result, Right(want, Nil))
+    assertEquals(result, Right(ParserOut(want, Nil)))
+  }
+
+  test("parse_condition") {
+    val input = """
+      if (4 > 5) and true then 1 else 2
+    """
+
+    val want = Cond(
+      pred = Buildin(
+        fn = BuildinFn.Logical(
+          fn = BuildinFn.And,
+          opA = Grouping(
+            expr = Buildin(
+              fn = BuildinFn.Comparison(
+                fn = BuildinFn.Greater,
+                opA = LiteralExpr(
+                  value = 4.0
+                ),
+                opB = LiteralExpr(
+                  value = 5.0
+                )
+              )
+            )
+          ),
+          opB = LiteralExpr(
+            value = true
+          )
+        )
+      ),
+      trueBranch = LiteralExpr(
+        value = 1.0
+      ),
+      falseBranch = LiteralExpr(
+        value = 2.0
+      )
+    )
+
+    val result = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- expression(tokens)
+
+    } yield bindExpr
+
+    assertEquals(result, Right(ParserOut(want, Nil)))
+
+  }
+
+  test("binding_rec") {
+    val input = """
+      |let fact = fun x -> if x <= 1 then 1 else x * fact(x - 1) 
+      |in fact(5)
+      """.stripMargin
+
+
+
+    val want = Cond(
+      pred = Buildin(
+        fn = BuildinFn.Logical(
+          fn = BuildinFn.And,
+          opA = Grouping(
+            expr = Buildin(
+              fn = BuildinFn.Comparison(
+                fn = BuildinFn.Greater,
+                opA = LiteralExpr(
+                  value = 4.0
+                ),
+                opB = LiteralExpr(
+                  value = 5.0
+                )
+              )
+            )
+          ),
+          opB = LiteralExpr(
+            value = true
+          )
+        )
+      ),
+      trueBranch = LiteralExpr(
+        value = 1.0
+      ),
+      falseBranch = LiteralExpr(
+        value = 2.0
+      )
+    )
+
+    val result = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- expression(tokens)
+
+    } yield bindExpr
+
+    assertEquals(result, Right(ParserOut(want, Nil)))
 
   }
