@@ -31,7 +31,7 @@ class ParserTest extends munit.FunSuite:
   val y = Variable(tokenY)
   val factorialVariable = Variable(factorialName)
 
-  test(s"expression primary number") {
+  test(s"parse_primary_number") {
     val ts = List(Literal.Number("42"))
     val expected = Expression.LiteralExpr(42)
 
@@ -39,7 +39,7 @@ class ParserTest extends munit.FunSuite:
 
   }
 
-  test("expression primary string") {
+  test("parse_primary_string") {
     val ts = List(Literal.Str("you rox!"))
     val want = LiteralExpr("you rox!")
 
@@ -328,7 +328,7 @@ class ParserTest extends munit.FunSuite:
 
   }
 
-  test("binding") {
+  test("parse_binding") {
     val input = """
       |let z = 4
       |let u = 3
@@ -436,11 +436,131 @@ class ParserTest extends munit.FunSuite:
 
   }
 
-  test("complex_func") {
+  test("parse_adding_2_function") {
+    val input = "fibo(n-1) + fibo(n-2)"
+
+    val want = Buildin(
+      fn = Arthimetric(
+        fn = BuildinFn.Add,
+        opA = App(
+          body = Variable(name = Identifier("fibo")),
+          arg = Buildin(fn =
+            Arthimetric(
+              fn = Sub,
+              opA = Variable(Identifier("n")),
+              opB = LiteralExpr(1.0)
+            )
+          )
+        ),
+        opB = App(
+          body = Variable(name = Identifier("fibo")),
+          arg = Buildin(fn =
+            Arthimetric(
+              fn = Sub,
+              opA = Variable(Identifier("n")),
+              opB = LiteralExpr(2.0)
+            )
+          )
+        )
+      )
+    )
+
+    val result = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- expression(tokens)
+
+    } yield bindExpr
+
+    assertEquals(result, Right(ParserOut(want, Nil)))
+  }
+
+  test("parse_nested_condition") {
 
     val input = """
-    fun x -> if x == 0 then 1 else x * fact(x - 1)
-    """
+    if n <= 0
+      then
+        0
+      else
+        if n == 1 then 1 else fibo(n-1) + fibo(n-2)
+  """
+
+    val want = Cond(
+      pred = Buildin(
+        fn = BuildinFn.Comparison(
+          fn = BuildinFn.LessEqual,
+          opA = Variable(
+            name = Identifier(
+              "n"
+            )
+          ),
+          opB = LiteralExpr(
+            value = 0.0
+          )
+        )
+      ),
+      trueBranch = LiteralExpr(
+        value = 0
+      ),
+      falseBranch = Cond(
+        pred = Buildin(
+          fn = BuildinFn.Comparison(
+            fn = BuildinFn.Equal,
+            opA = Variable(
+              name = Identifier(
+                "n"
+              )
+            ),
+            opB = LiteralExpr(
+              value = 1.0
+            )
+          )
+        ),
+        trueBranch = LiteralExpr(
+          value = 1
+        ),
+        falseBranch = Buildin(
+          fn = Arthimetric(
+            fn = BuildinFn.Add,
+            opA = App(
+              body = Variable(name = Identifier("fibo")),
+              arg = Buildin(fn =
+                Arthimetric(
+                  fn = Sub,
+                  opA = Variable(Identifier("n")),
+                  opB = LiteralExpr(1.0)
+                )
+              )
+            ),
+            opB = App(
+              body = Variable(name = Identifier("fibo")),
+              arg = Buildin(fn =
+                Arthimetric(
+                  fn = Sub,
+                  opA = Variable(Identifier("n")),
+                  opB = LiteralExpr(2.0)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+
+    val result = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- expression(tokens)
+
+    } yield bindExpr
+
+    assertEquals(result, Right(ParserOut(want, Nil)))
+
+  }
+
+  test("parse_complex_func") {
+
+    val input = """
+  fun x -> if x == 0 then 1 else x * fact(x - 1)
+  """
 
     val xMinus1 = Buildin(
       Arthimetric(Sub, x, LiteralExpr(1))
@@ -478,9 +598,9 @@ class ParserTest extends munit.FunSuite:
 
   test("binding_rec") {
     val input = """
-    |let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
-    |in fact(5)
-    """.stripMargin
+  |let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+  |in fact(5)
+  """.stripMargin
 
     val xMinus1 = Buildin(
       Arthimetric(Sub, x, LiteralExpr(1))

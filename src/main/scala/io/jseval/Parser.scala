@@ -37,8 +37,8 @@ object Parser {
     let(tokens)
       .orElse(condition(tokens))
       .orElse(lambdaFunc(tokens))
-      .orElse(app(tokens))
       .orElse(or(tokens))
+      .orElse(app(tokens))
 
   // Let x = 5
   // Let y = 6

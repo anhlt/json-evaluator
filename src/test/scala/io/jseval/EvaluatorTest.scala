@@ -40,7 +40,7 @@ class EvaluatorTest extends munit.FunSuite:
 
   implicit val env: Expr.Env = Map()
 
-  test("simple 2 + 3 should be 5") {
+  test("evaluate_simple_expression") {
 
     val expr = Buildin(
       BuildinFn.Arthimetric(
@@ -62,7 +62,7 @@ class EvaluatorTest extends munit.FunSuite:
 
   }
 
-  test("lambda x: x + 3") {
+  test("evaluate_lambda") {
 
     val token = Literal.Identifier("dummy")
     val variable = Expr.Variable(token)
@@ -96,7 +96,7 @@ class EvaluatorTest extends munit.FunSuite:
   // \y: x + y {x -> 5}
   // x + y {x -> 5, y -> 6}
 
-  test("lambda \\x \\y x + y") {
+  test("evaluate_nested_lambda") {
 
     def sum(xExpression: Expr, yExpression: Expr): Expr = {
       val bodyExpr =
@@ -170,11 +170,7 @@ class EvaluatorTest extends munit.FunSuite:
 
   }
 
-  test("""
-    Let y = 1
-    Let inc = \x x + 3
-    in inc(y)
-    """.stripMargin) {
+  test("evaluate_inc_function") {
 
     // Let inc = \x x + 3
 
@@ -222,7 +218,7 @@ class EvaluatorTest extends munit.FunSuite:
 
   }
 
-  test("sum_two_numbers") {
+  test("evaluate_sum_two_numbers") {
 
     // \y => x + y
 
@@ -279,7 +275,7 @@ class EvaluatorTest extends munit.FunSuite:
     assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(7.0)))
   }
 
-  test("""Factorial""") {
+  test("""evaluate_earge_fix_point""") {
 
     // x - 1
 
@@ -334,5 +330,49 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](binding)
     assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(120)))
+
+  }
+
+  test("evaluate_rec_binding") {
+
+    val input = """
+    |let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+    |in fact(5)
+    """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- Parser.expression(tokens)
+
+    } yield bindExpr
+
+    val a = parserResult.map(_._1).getOrElse(LiteralExpr(5))
+
+    val result: MyEither[Value] = ExprEval.eval[MyEither](a)
+
+    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(120)))
+
+  }
+
+  test("evaluate_rec_fibonacy") {
+
+
+
+    val input = """
+    |let rec fibo = fun n -> if n <= 0 then 0 else if n == 1 then 1 else fibo(n-1) + fibo(n-2)
+    |in fibo(10)
+    """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- Parser.expression(tokens)
+
+    } yield bindExpr
+
+    val a = parserResult.map(_._1).getOrElse(LiteralExpr(5))
+
+    val result: MyEither[Value] = ExprEval.eval[MyEither](a)
+
+    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(55)))
 
   }

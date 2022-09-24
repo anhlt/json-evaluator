@@ -190,17 +190,39 @@ object Evaluator {
             body: Expr,
             expr: Expr
           ) =>
-        for {
-          bodyVal <- eval(body) // enclosure
-          newEnv = env + (variableName.name -> bodyVal)
-          result <- eval(expr)(me, fr, sc, newEnv)
-          _ <- sc.info(s"""
+        if (recursive) {
+
+          val fixRecusive = App(
+            body = Utils.eagerFixPoint,
+            arg =
+              Abs(variableName = variableName, variableType = TAny, body = body)
+          )
+
+          for {
+            bodyVal <- eval(fixRecusive) // enclosure
+            newEnv = env + (variableName.name -> bodyVal)
+            result <- eval(expr)(me, fr, sc, newEnv)
+            _ <- sc.info(s"""
             |Binding
             |variableName = $variableName
             |bodyVal = $bodyVal
             |newEnv = $newEnv
             |result = $result
             """.stripMargin)
-        } yield result
+          } yield result
+
+        } else
+          for {
+            bodyVal <- eval(body) // enclosure
+            newEnv = env + (variableName.name -> bodyVal)
+            result <- eval(expr)(me, fr, sc, newEnv)
+            _ <- sc.info(s"""
+            |Binding
+            |variableName = $variableName
+            |bodyVal = $bodyVal
+            |newEnv = $newEnv
+            |result = $result
+            """.stripMargin)
+          } yield result
     }
 }
