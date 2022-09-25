@@ -75,21 +75,11 @@ object Parser {
     for {
       letAndRmn <- consume(Keyword.Let, tokens)
       (letKw, rmn) = letAndRmn
-      _ <- me.pure(println(s"after let $rmn"))
       isRecursive <- rec(rmn)
-
-      _ <- me.pure(println(s"after rec $isRecursive"))
       (isRec, afterRec) = isRecursive
       identiferAndRmn <- identifier(afterRec)
-
-      _ <- me.pure(println(s"after ident "))
-
       variable <- asVariable(identiferAndRmn.expr)
-
       equalAndRmn <- consume(Operator.Equal, identiferAndRmn.rmn)
-
-      _ <- me.pure(println(s"after equality"))
-
       exprAndRmn <- expression(equalAndRmn._2)
       result <- (for {
         rs <- in(exprAndRmn.rmn)

@@ -333,6 +333,31 @@ class EvaluatorTest extends munit.FunSuite:
 
   }
 
+
+    test("evaluate_complex_input") {
+
+    val input = """
+    |let mul = fun x y -> x * y
+    |let sum = fun x y -> x + y
+    |let x = 5
+    |let y = 6
+    |in sum(12, mul(x, y))
+    """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- Parser.expression(tokens)
+
+    } yield bindExpr
+
+    val a = parserResult.map(_._1).getOrElse(LiteralExpr(5))
+
+    val result: MyEither[Value] = ExprEval.eval[MyEither](a)
+
+    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(42)))
+
+  }
+
   test("evaluate_rec_binding") {
 
     val input = """
