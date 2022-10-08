@@ -7,21 +7,17 @@ import Expression._
 import Expression.BuildinModule._
 import Expression.BuildinModule.BuildinFn._
 import Expression.ValueModule._
-import TypModule.TInt
+import TypModule.{TInt, TAny}
 import Evaluator as ExprEval
 import io.jseval.{Token, Literal}
-import io.jseval.TypModule.TAny
 import cats.data._
-import scala.util.{Try, Success}
-import scribe.cats._
 import cats.effect._
 import cats.effect.implicits._
-import cats.effect.unsafe.implicits.global
-import scala.concurrent.ExecutionContext
 
 class EvaluatorTest extends munit.FunSuite:
 
-  type MyEither[A] = EitherT[IO, Expr.Error, A]
+  // type MyEither[A] = EitherT[IO, Error, A]
+  type MyEither[A] = Either[Error, A]
 
   val tokenX = Literal.Identifier("x")
   val tokenY = Literal.Identifier("y")
@@ -56,9 +52,8 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result = ExprEval.eval[MyEither](expr)
 
-    val value = result.value.unsafeRunSync()
 
-    assertEquals(value, Right(LiteralValue(5.0)))
+    assertEquals(result, Right(LiteralValue(5.0)))
 
   }
 
@@ -87,7 +82,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result = ExprEval.eval[MyEither](app)
 
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(8.0)))
+    assertEquals(result, Right(LiteralValue(8.0)))
 
   }
 
@@ -127,7 +122,7 @@ class EvaluatorTest extends munit.FunSuite:
     val result: MyEither[Value] =
       ExprEval.eval[MyEither](sum(Expr.LiteralExpr(5.0), Expr.LiteralExpr(6.0)))
 
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(11.0)))
+    assertEquals(result, Right(LiteralValue(11.0)))
 
   }
 
@@ -166,7 +161,7 @@ class EvaluatorTest extends munit.FunSuite:
     )
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](inc3(1.0))
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(4.0)))
+    assertEquals(result, Right(LiteralValue(4.0)))
 
   }
 
@@ -214,7 +209,7 @@ class EvaluatorTest extends munit.FunSuite:
     )
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](finalBind)
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(4.0)))
+    assertEquals(result, Right(LiteralValue(4.0)))
 
   }
 
@@ -272,7 +267,7 @@ class EvaluatorTest extends munit.FunSuite:
     )
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](finalBind)
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(7.0)))
+    assertEquals(result, Right(LiteralValue(7.0)))
   }
 
   test("""evaluate_earge_fix_point""") {
@@ -329,7 +324,7 @@ class EvaluatorTest extends munit.FunSuite:
     )
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](binding)
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(120)))
+    assertEquals(result, Right(LiteralValue(120)))
 
   }
 
@@ -354,7 +349,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](a)
 
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(42)))
+    assertEquals(result, Right(LiteralValue(42)))
 
   }
 
@@ -375,7 +370,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](a)
 
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(120)))
+    assertEquals(result, Right(LiteralValue(120)))
 
   }
 
@@ -398,6 +393,6 @@ class EvaluatorTest extends munit.FunSuite:
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](a)
 
-    assertEquals(result.value.unsafeRunSync(), Right(LiteralValue(55)))
+    assertEquals(result, Right(LiteralValue(55)))
 
   }

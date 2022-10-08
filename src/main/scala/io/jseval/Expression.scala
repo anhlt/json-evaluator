@@ -1,11 +1,9 @@
 package io.jseval
-import cats.syntax.all._
+
 import cats._
 import cats.implicits._
-
 import TypModule._
-import cats.mtl._
-import cats.mtl.implicits._
+
 
 type LiteralType = Double | Boolean | String
 object LiteralType {
@@ -124,10 +122,10 @@ object Expression {
 
       def asDouble[F[_]](
           value: Any
-      )(implicit a: Applicative[F], fr: Raise[F, Error]): F[Double] = {
+      )(implicit a: MonadError[F, Error]): F[Double] = {
         value match {
           case LiteralValue(v: Double) => a.pure(v)
-          case _                       => fr.raise(WrongType(value, "Double"))
+          case _ => a.raiseError(Error.WrongType(value, "Double"))
           // case _ => fr.raiseError(WrongType(value, "Double"))
 
         }
@@ -135,19 +133,19 @@ object Expression {
 
       def asBool[F[_]](
           value: Any
-      )(implicit a: Applicative[F], fr: Raise[F, Error]): F[Boolean] = {
+      )(implicit a: MonadError[F, Error]): F[Boolean] = {
         value match {
           case LiteralValue(v: Boolean) => a.pure(v)
-          case _                        => fr.raise(WrongType(value, "Boolean"))
+          case _ => a.raiseError(Error.WrongType(value, "Boolean"))
         }
       }
 
       def asClosure[F[_]](
           value: Any
-      )(implicit fr: Raise[F, Error], a: Applicative[F]): F[Closure] = {
+      )(implicit a: MonadError[F, Error]): F[Closure] = {
         value match {
           case v: Closure => a.pure(v)
-          case _          => fr.raise(WrongType(value, "Closure"))
+          case _          => a.raiseError(Error.WrongType(value, "Closure"))
         }
       }
     }
@@ -157,11 +155,6 @@ object Expression {
     case class Closure(env: Env, varName: Token, body: Expr) extends Value
 
   }
-
-  sealed trait Error
-
-  case class WrongType(v: Any, expectedType: String) extends Error
-  case class UnboundedName(token: Token) extends Error
 
   // var x , y
   // abs: \x = x + 1
