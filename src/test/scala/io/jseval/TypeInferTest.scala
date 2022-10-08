@@ -29,7 +29,7 @@ class TypeInferTest extends munit.FunSuite:
 
   implicit val env: TypeInfer.TypeEnv = Map()
 
-  test("simple 2 + 3 should be TInt") {
+  test("type_infer_simple_int") {
 
     val expr = Buildin(
       BuildinFn.Arthimetric(
@@ -49,7 +49,7 @@ class TypeInferTest extends munit.FunSuite:
 
   }
 
-  test(" if ('a' == 3) {1} else {2} should be Invalid") {
+  test("type_infer_condition") {
 
     val expr = Cond(
       Buildin(
@@ -74,7 +74,7 @@ class TypeInferTest extends munit.FunSuite:
 
   }
 
-  test(" if ('a' == 'b') {1} else {2} should be TInt") {
+  test("type_infer_condition_2") {
 
     val expr = Cond(
       Buildin(
@@ -94,7 +94,7 @@ class TypeInferTest extends munit.FunSuite:
 
   }
 
-  test(" if ('a' == 'b') {1} else {'a'} should be Invalid") {
+  test("type_infer_condition_3") {
 
     val expr = Cond(
       Buildin(
@@ -116,14 +116,7 @@ class TypeInferTest extends munit.FunSuite:
 
   }
 
-  test("""
-    Let z = 4
-    Let t = 3
-    Let sum = \x \y x + y
-    in sum(z, t)
-
-    should be TInt
-    """) {
+  test("type_infer_abs") {
 
     // \y => x + y
 
@@ -179,14 +172,7 @@ class TypeInferTest extends munit.FunSuite:
     assertEquals(result, Right(TInt))
   }
 
-  test("""
-    Let z = "a"
-    Let t = 3
-    Let sum = \x \y x + y
-    in sum(z, t)
-
-    should be Invalid
-    """) {
+  test("type_infer_abs_2") {
 
     // \y => x + y
 
