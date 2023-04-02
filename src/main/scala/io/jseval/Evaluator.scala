@@ -93,8 +93,8 @@ object Evaluator {
   def eval[F[_]](
       expr: Expr
   )(implicit
-      me: MonadError[F, Error], //
-      env: Env
+    me: MonadError[F, CompilerError], //
+    env: Env
   ): F[Value] =
     expr match {
       case LiteralExpr(v) => me.pure(LiteralValue(v))
@@ -151,7 +151,7 @@ object Evaluator {
       case variable @ Variable(token) =>
         env.get(token) match {
           case Some(v) => me.pure(v)
-          case None    => me.raiseError(Error.UnboundedName(token))
+          case None    => me.raiseError(CompilerError.UnboundedName(token))
         }
 
       case App(bodyExpr, arg) => {

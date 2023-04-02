@@ -17,7 +17,7 @@ import cats.effect.implicits._
 class EvaluatorTest extends munit.FunSuite:
 
   // type MyEither[A] = EitherT[IO, Error, A]
-  type MyEither[A] = Either[Error, A]
+  type MyEither[A] = Either[CompilerError, A]
 
   val tokenX = Literal.Identifier("x")
   val tokenY = Literal.Identifier("y")

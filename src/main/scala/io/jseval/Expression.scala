@@ -122,10 +122,10 @@ object Expression {
 
       def asDouble[F[_]](
           value: Any
-      )(implicit a: MonadError[F, Error]): F[Double] = {
+      )(implicit a: MonadError[F, CompilerError]): F[Double] = {
         value match {
           case LiteralValue(v: Double) => a.pure(v)
-          case _ => a.raiseError(Error.WrongType(value, "Double"))
+          case _ => a.raiseError(CompilerError.WrongType(value, "Double"))
           // case _ => fr.raiseError(WrongType(value, "Double"))
 
         }
@@ -133,19 +133,19 @@ object Expression {
 
       def asBool[F[_]](
           value: Any
-      )(implicit a: MonadError[F, Error]): F[Boolean] = {
+      )(implicit a: MonadError[F, CompilerError]): F[Boolean] = {
         value match {
           case LiteralValue(v: Boolean) => a.pure(v)
-          case _ => a.raiseError(Error.WrongType(value, "Boolean"))
+          case _ => a.raiseError(CompilerError.WrongType(value, "Boolean"))
         }
       }
 
       def asClosure[F[_]](
           value: Any
-      )(implicit a: MonadError[F, Error]): F[Closure] = {
+      )(implicit a: MonadError[F, CompilerError]): F[Closure] = {
         value match {
           case v: Closure => a.pure(v)
-          case _          => a.raiseError(Error.WrongType(value, "Closure"))
+          case _          => a.raiseError(CompilerError.WrongType(value, "Closure"))
         }
       }
     }

@@ -3,8 +3,6 @@ package io.jseval
 sealed trait Token:
   val lexeme: String
 
-case class ExtraToken[+A](info: A, token: Token)
-
 enum Literal(val lexeme: String) extends Token:
   case Identifier(override val lexeme: String) extends Literal(lexeme)
   case Str(override val lexeme: String) extends Literal(lexeme)

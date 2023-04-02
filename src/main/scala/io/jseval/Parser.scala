@@ -12,7 +12,7 @@ import Expression._
 object Parser {
 
   def parseExpr[F[_]](f: List[Token] => F[ParserOut])(tokens: List[Token])(
-      implicit a: MonadError[F, Error]
+      implicit a: MonadError[F, CompilerError]
   ): F[ParserOut] = for {
     rs <- f(tokens)
     rs2 <- consume(Operator.Semicolon, rs._2)
@@ -20,7 +20,7 @@ object Parser {
 
   def expression[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     let(tokens)
       .orElse(condition(tokens))
       .orElse(lambdaFunc(tokens))
@@ -34,7 +34,7 @@ object Parser {
 
   def condition[F[_]](
       tokens: List[Token]
-  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
 
     for {
       ifAndRmn <- consume(expect = Keyword.If, tokens = tokens)
@@ -57,7 +57,7 @@ object Parser {
 
   def let[F[_]](
       tokens: List[Token]
-  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
 
     for {
       letAndRmn <- consume(Keyword.Let, tokens)
@@ -70,7 +70,7 @@ object Parser {
       exprAndRmn <- expression(equalAndRmn._2)
       result <- (for {
         rs <- in(exprAndRmn.rmn)
-      } yield rs).recoverWith({ case Error.ExpectToken(Keyword.In) =>
+      } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.In) =>
         let(exprAndRmn.rmn)
       })
 
@@ -82,7 +82,7 @@ object Parser {
 
   def rec[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[(Boolean, List[Token])] =
+  )(implicit a: MonadError[F, CompilerError]): F[(Boolean, List[Token])] =
     tokens.headOption match {
       case Some(Keyword.Rec) => a.pure(true, tokens.tail)
       case _                 => a.pure(false, tokens)
@@ -90,7 +90,7 @@ object Parser {
 
   def in[F[_]](
       tokens: List[Token]
-  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
 
     for {
       inAndRmn <- consume(Keyword.In, tokens)
@@ -102,7 +102,7 @@ object Parser {
   // x (a, b, c)
   def app[F[_]](
       tokens: List[Token]
-  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
 
     for {
       bodyAndRmn <- identifier(tokens)
@@ -117,7 +117,7 @@ object Parser {
   def appArgs[F[_]](
       previousExpr: Expr,
       tokens: List[Token]
-  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
 
     for {
       argAndRemaining <- expression(tokens)
@@ -125,7 +125,7 @@ object Parser {
         commaAndTokens <- consume(Operator.Comma, argAndRemaining.rmn)
         (comma, afterComma) = commaAndTokens
         rs <- appArgs(App(previousExpr, argAndRemaining.expr), afterComma)
-      } yield (rs)).recover({ case Error.ExpectToken(Operator.Comma) =>
+      } yield (rs)).recover({ case CompilerError.ExpectToken(Operator.Comma) =>
         ParserOut(App(previousExpr, argAndRemaining.expr), argAndRemaining.rmn)
       })
 
@@ -135,7 +135,7 @@ object Parser {
 
   def lambdaFunc[F[_]](
       tokens: List[Token]
-  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
 
     for {
       funTokensAndRemaining <- consume(Keyword.Fun, tokens)
@@ -146,7 +146,7 @@ object Parser {
 
   def lambda[F[_]](
       tokens: List[Token]
-  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
 
     for {
       argAndRemaining <- identifier(tokens)
@@ -164,7 +164,7 @@ object Parser {
 
   def lamdaBody[F[_]](
       tokens: List[Token]
-  )(implicit me: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
     for {
       arrowAndRmn <- consume(Operator.Arrow, tokens)
       (arrow, rmn) = arrowAndRmn
@@ -175,12 +175,12 @@ object Parser {
 
   def or[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     binary(orOp, and)(tokens)
 
   def and[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     binary(andOp, equality)(tokens)
 
   // Parse binary expressions that share this grammar
@@ -195,7 +195,7 @@ object Parser {
       descendantFn: List[Token] => F[ParserOut]
   )(
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
 
     def matchOp(ts: List[Token], leftExpr: Expr): F[ParserOut] =
       ts match
@@ -220,27 +220,27 @@ object Parser {
 
   def equality[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     binary(equalityOp, comparison)(tokens)
 
   def comparison[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     binary(comparisonOp, term)(tokens)
 
   def term[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     binary(termOp, factor)(tokens)
 
   def factor[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     binary(factorOp, unary)(tokens)
 
   def unary[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     tokens match {
       case token :: rest =>
         (for {
@@ -256,14 +256,14 @@ object Parser {
 
   def primaryOrIdentiferOrGroup[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     app(tokens).orElse(
       primary(tokens).orElse(identifier(tokens)).orElse(group(tokens))
     )
 
   def primary[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     tokens match
       case Literal.Number(l) :: rest =>
         a.pure(ParserOut(Expression.LiteralExpr(l.toDouble), rest))
@@ -273,92 +273,92 @@ object Parser {
         a.pure(ParserOut(Expression.LiteralExpr(true), rest))
       case Keyword.False :: rest =>
         a.pure(ParserOut(Expression.LiteralExpr(false), rest))
-      case _ => a.raiseError(Error.ExpectExpression(tokens))
+      case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
 
   def identifier[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     tokens match {
       case Literal.Identifier(name) :: rest =>
         a.pure(ParserOut(Expression.Variable(Literal.Identifier(name)), rest))
-      case _ => a.raiseError(Error.ExpectExpression(tokens))
+      case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
     }
 
   def asVariable[F[_]](x: Expr)(implicit
-      a: MonadError[F, Error]
+      a: MonadError[F, CompilerError]
   ): F[Variable] = {
     x.match {
       case v: Variable => a.pure(v)
-      case _           => a.raiseError(Error.ExpectIdentifer())
+      case _           => a.raiseError(CompilerError.ExpectIdentifer())
     }
 
   }
 
   def group[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] = {
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] = {
     tokens match
       case Operator.LeftParen :: rest => parenBody(rest)
-      case _ => a.raiseError(Error.ExpectExpression(tokens))
+      case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
 
   }
 
   // Parse the body within a pair of parentheses (the part after "(")
   def parenBody[F[F]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     expression(tokens).flatMap((parserOut) =>
       parserOut.rmn match
         case Operator.RightParen :: rmn =>
           a.pure(ParserOut(Expression.Grouping(parserOut.expr), rmn))
-        case _ => a.raiseError(Error.ExpectClosing(parserOut.rmn))
+        case _ => a.raiseError(CompilerError.ExpectClosing(parserOut.rmn))
     )
 
   def consume[F[_]](
       expect: Token,
       tokens: List[Token]
-  )(implicit a: MonadError[F, Error]): F[(Token, List[Token])] =
+  )(implicit a: MonadError[F, CompilerError]): F[(Token, List[Token])] =
     tokens.headOption match {
       case Some(token) => {
         if (token == expect) {
           a.pure((expect, tokens.tail))
         } else {
-          a.raiseError(Error.ExpectToken(expect))
+          a.raiseError(CompilerError.ExpectToken(expect))
         }
       }
-      case _ => a.raiseError(Error.ExpectToken(expect))
+      case _ => a.raiseError(CompilerError.ExpectToken(expect))
     }
 
   case class ParserOut(expr: Expr, rmn: List[Token])
 
   def orOp[F[_]](token: Token)(implicit
-      me: MonadError[F, Error]
+      me: MonadError[F, CompilerError]
   ): F[(Expr, Expr) => Expr] =
     token match
       case Keyword.Or =>
         me.pure((l, r) => Buildin(BuildinFn.Logical(BuildinFn.Or, l, r)))
       case _ =>
         me.raiseError(
-          Error.ExpectToken(
+          CompilerError.ExpectToken(
             Keyword.Or
           )
         )
 
   def andOp[F[_]](token: Token)(implicit
-      me: MonadError[F, Error]
+      me: MonadError[F, CompilerError]
   ): F[(Expr, Expr) => Expr] =
     token match
       case Keyword.And =>
         me.pure((l, r) => Buildin(BuildinFn.Logical(BuildinFn.And, l, r)))
       case _ =>
         me.raiseError(
-          Error.ExpectToken(
+          CompilerError.ExpectToken(
             Keyword.And
           )
         )
 
   def equalityOp[F[_]](token: Token)(implicit
-      me: MonadError[F, Error]
+      me: MonadError[F, CompilerError]
   ): F[(Expr, Expr) => Expr] =
     token match
       case Operator.EqualEqual =>
@@ -369,7 +369,7 @@ object Parser {
         )
       case _ =>
         me.raiseError(
-          Error.ExpectTokens(
+          CompilerError.ExpectTokens(
             List(
               Operator.EqualEqual,
               Operator.BangEqual
@@ -378,7 +378,7 @@ object Parser {
         )
 
   def comparisonOp[F[_]](token: Token)(implicit
-      me: MonadError[F, Error]
+      me: MonadError[F, CompilerError]
   ): F[(Expr, Expr) => Expr] =
     token match
       case Operator.Less =>
@@ -397,7 +397,7 @@ object Parser {
         )
       case _ =>
         me.raiseError(
-          Error.ExpectTokens(
+          CompilerError.ExpectTokens(
             List(
               Operator.Less,
               Operator.LessEqual,
@@ -408,7 +408,7 @@ object Parser {
         )
 
   def termOp[F[_]](token: Token)(implicit
-      me: MonadError[F, Error]
+      me: MonadError[F, CompilerError]
   ): F[(Expr, Expr) => Expr] =
     token match
       case Operator.Plus =>
@@ -418,10 +418,10 @@ object Parser {
         me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Sub, l, r)))
 
       case _ =>
-        me.raiseError(Error.ExpectTokens(List(Operator.Plus, Operator.Minus)))
+        me.raiseError(CompilerError.ExpectTokens(List(Operator.Plus, Operator.Minus)))
 
   def factorOp[F[_]](token: Token)(implicit
-      me: MonadError[F, Error]
+      me: MonadError[F, CompilerError]
   ): F[(Expr, Expr) => Expr] =
     token match
 
@@ -430,10 +430,10 @@ object Parser {
       case Operator.Slash =>
         me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Div, l, r)))
       case _ =>
-        me.raiseError(Error.ExpectTokens(List(Operator.Star, Operator.Slash)))
+        me.raiseError(CompilerError.ExpectTokens(List(Operator.Star, Operator.Slash)))
 
   def unaryOp[F[_]](token: Token)(implicit
-      me: MonadError[F, Error]
+      me: MonadError[F, CompilerError]
   ): F[Expr => Expr] =
     token match
       case x @ Operator.Minus =>
@@ -441,6 +441,6 @@ object Parser {
       case x @ Operator.Bang =>
         me.pure(x => Buildin(BuildinFn.Unary(BuildinFn.Not, x)))
       case _ =>
-        me.raiseError(Error.ExpectTokens(List(Operator.Minus, Operator.Bang)))
+        me.raiseError(CompilerError.ExpectTokens(List(Operator.Minus, Operator.Bang)))
 
 }
