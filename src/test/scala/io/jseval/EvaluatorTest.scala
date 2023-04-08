@@ -39,7 +39,7 @@ class EvaluatorTest extends munit.FunSuite:
   test("evaluate_simple_expression") {
 
     val expr = Buildin(
-      BuildinFn.Arthimetric(
+      BuildinFn.Arithmetic(
         BuildinFn.Add,
         Expr.LiteralExpr(
           2.0
@@ -68,7 +68,7 @@ class EvaluatorTest extends munit.FunSuite:
       variableName = Variable(token),
       variableType = TInt,
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           variable,
           Expr.LiteralExpr(
@@ -102,7 +102,7 @@ class EvaluatorTest extends munit.FunSuite:
             variableName = Variable(tokenY),
             variableType = TInt,
             body = Buildin(
-              BuildinFn.Arthimetric(
+              BuildinFn.Arithmetic(
                 BuildinFn.Add,
                 x,
                 y
@@ -138,7 +138,7 @@ class EvaluatorTest extends munit.FunSuite:
       variableName = Variable(tokenX),
       variableType = TInt,
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           Expr.LiteralExpr(
@@ -175,7 +175,7 @@ class EvaluatorTest extends munit.FunSuite:
       variableName = Variable(tokenX),
       variableType = TInt,
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           Expr.LiteralExpr(
@@ -221,7 +221,7 @@ class EvaluatorTest extends munit.FunSuite:
       variableName = Variable(tokenY),
       variableType = TInt,
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           y
@@ -275,13 +275,13 @@ class EvaluatorTest extends munit.FunSuite:
     // x - 1
 
     val xMinus1 = Buildin(
-      Arthimetric(Sub, x, LiteralExpr(1))
+      Arithmetic(Sub, x, LiteralExpr(1))
     )
 
     // x * factorial(x-1)
 
     val falseBranch = Buildin(
-      Arthimetric(Mul, x, App(body = factorialVariable, arg = xMinus1))
+      Arithmetic(Mul, x, App(body = factorialVariable, arg = xMinus1))
     )
 
     // x == 0

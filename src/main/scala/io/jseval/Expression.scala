@@ -104,7 +104,7 @@ object Expression {
 
       case class Unary(fn: UnaryFn, opA: Expr) extends BuildinFn
 
-      case class Arthimetric(fn: ArthimetricFn, opA: Expr, opB: Expr)
+      case class Arithmetic(fn: ArthimetricFn, opA: Expr, opB: Expr)
           extends BuildinFn
 
       case class Comparison(fn: ComparisonFn, opA: Expr, opB: Expr)

@@ -98,7 +98,7 @@ object Evaluator {
   ): F[Value] =
     expr match {
       case LiteralExpr(v) => me.pure(LiteralValue(v))
-      case Buildin(Arthimetric(fn, opA, opB)) => {
+      case Buildin(Arithmetic(fn, opA, opB)) => {
         for {
           aAsValue <- eval(opA)
           aAsDouble <- Value.asDouble(aAsValue)

@@ -412,10 +412,10 @@ object Parser {
   ): F[(Expr, Expr) => Expr] =
     token match
       case Operator.Plus =>
-        me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Add, l, r)))
+        me.pure((l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Add, l, r)))
 
       case Operator.Minus =>
-        me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Sub, l, r)))
+        me.pure((l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Sub, l, r)))
 
       case _ =>
         me.raiseError(CompilerError.ExpectTokens(List(Operator.Plus, Operator.Minus)))
@@ -426,9 +426,9 @@ object Parser {
     token match
 
       case Operator.Star =>
-        me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Mul, l, r)))
+        me.pure((l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Mul, l, r)))
       case Operator.Slash =>
-        me.pure((l, r) => Buildin(BuildinFn.Arthimetric(BuildinFn.Div, l, r)))
+        me.pure((l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Div, l, r)))
       case _ =>
         me.raiseError(CompilerError.ExpectTokens(List(Operator.Star, Operator.Slash)))
 

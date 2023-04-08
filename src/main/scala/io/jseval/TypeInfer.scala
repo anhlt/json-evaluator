@@ -105,7 +105,7 @@ object TypeInfer {
   )(implicit me: MonadError[F, TypeError.Error], env: TypeEnv): F[Typ] =
     expr match {
       case LiteralExpr(v) => me.pure(Utils.asType(v))
-      case Buildin(Arthimetric(fn, opA, opB)) => {
+      case Buildin(Arithmetic(fn, opA, opB)) => {
         for {
           aAsType <- infer(opA)
           aAsDouble <- Utils.asInt(aAsType)

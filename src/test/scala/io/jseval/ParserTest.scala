@@ -12,7 +12,7 @@ import Keyword._
 import Operator._
 import Literal._
 import io.jseval.TypModule._
-import io.jseval.Expression.BuildinModule.BuildinFn.Arthimetric
+import io.jseval.Expression.BuildinModule.BuildinFn.Arithmetic
 import io.jseval.Expression.BuildinModule.BuildinFn.Sub
 import io.jseval.Expression.BuildinModule.BuildinFn.Mul
 
@@ -82,10 +82,10 @@ class ParserTest extends munit.FunSuite:
     )
 
     val want = Buildin(
-      BuildinFn.Arthimetric(
+      BuildinFn.Arithmetic(
         BuildinFn.Mul,
         Buildin(
-          BuildinFn.Arthimetric(
+          BuildinFn.Arithmetic(
             BuildinFn.Mul,
             LiteralExpr(
               5.0
@@ -176,7 +176,7 @@ class ParserTest extends munit.FunSuite:
                 BuildinFn.Comparison(
                   BuildinFn.Less,
                   Buildin(
-                    BuildinFn.Arthimetric(
+                    BuildinFn.Arithmetic(
                       BuildinFn.Add,
                       LiteralExpr(
                         5.0
@@ -198,7 +198,7 @@ class ParserTest extends munit.FunSuite:
                   BuildinFn.Greater,
                   Grouping(
                     expr = Buildin(
-                      BuildinFn.Arthimetric(
+                      BuildinFn.Arithmetic(
                         BuildinFn.Add,
                         LiteralExpr(
                           7.0
@@ -240,10 +240,10 @@ class ParserTest extends munit.FunSuite:
     )
 
     val body = Buildin(
-      BuildinFn.Arthimetric(
+      BuildinFn.Arithmetic(
         BuildinFn.Add,
         Buildin(
-          BuildinFn.Arthimetric(
+          BuildinFn.Arithmetic(
             BuildinFn.Add,
             Variable(Identifier("x")),
             Variable(Identifier("y"))
@@ -348,7 +348,7 @@ class ParserTest extends munit.FunSuite:
       variableName = Variable(tokenY),
       variableType = TAny,
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           y
@@ -440,12 +440,12 @@ class ParserTest extends munit.FunSuite:
     val input = "fibo(n-1) + fibo(n-2)"
 
     val want = Buildin(
-      fn = Arthimetric(
+      fn = Arithmetic(
         fn = BuildinFn.Add,
         opA = App(
           body = Variable(name = Identifier("fibo")),
           arg = Buildin(fn =
-            Arthimetric(
+            Arithmetic(
               fn = Sub,
               opA = Variable(Identifier("n")),
               opB = LiteralExpr(1.0)
@@ -455,7 +455,7 @@ class ParserTest extends munit.FunSuite:
         opB = App(
           body = Variable(name = Identifier("fibo")),
           arg = Buildin(fn =
-            Arthimetric(
+            Arithmetic(
               fn = Sub,
               opA = Variable(Identifier("n")),
               opB = LiteralExpr(2.0)
@@ -519,12 +519,12 @@ class ParserTest extends munit.FunSuite:
           value = 1
         ),
         falseBranch = Buildin(
-          fn = Arthimetric(
+          fn = Arithmetic(
             fn = BuildinFn.Add,
             opA = App(
               body = Variable(name = Identifier("fibo")),
               arg = Buildin(fn =
-                Arthimetric(
+                Arithmetic(
                   fn = Sub,
                   opA = Variable(Identifier("n")),
                   opB = LiteralExpr(1.0)
@@ -534,7 +534,7 @@ class ParserTest extends munit.FunSuite:
             opB = App(
               body = Variable(name = Identifier("fibo")),
               arg = Buildin(fn =
-                Arthimetric(
+                Arithmetic(
                   fn = Sub,
                   opA = Variable(Identifier("n")),
                   opB = LiteralExpr(2.0)
@@ -563,11 +563,11 @@ class ParserTest extends munit.FunSuite:
   """
 
     val xMinus1 = Buildin(
-      Arthimetric(Sub, x, LiteralExpr(1))
+      Arithmetic(Sub, x, LiteralExpr(1))
     )
 
     val falseBranch = Buildin(
-      Arthimetric(Mul, x, App(body = factorialVariable, arg = xMinus1))
+      Arithmetic(Mul, x, App(body = factorialVariable, arg = xMinus1))
     )
 
     val comparision = Buildin(
@@ -603,11 +603,11 @@ class ParserTest extends munit.FunSuite:
   """.stripMargin
 
     val xMinus1 = Buildin(
-      Arthimetric(Sub, x, LiteralExpr(1))
+      Arithmetic(Sub, x, LiteralExpr(1))
     )
 
     val falseBranch = Buildin(
-      Arthimetric(Mul, x, App(body = factorialVariable, arg = xMinus1))
+      Arithmetic(Mul, x, App(body = factorialVariable, arg = xMinus1))
     )
 
     val comparision = Buildin(

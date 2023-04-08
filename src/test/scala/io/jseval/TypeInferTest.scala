@@ -32,7 +32,7 @@ class TypeInferTest extends munit.FunSuite:
   test("type_infer_simple_int") {
 
     val expr = Buildin(
-      BuildinFn.Arthimetric(
+      BuildinFn.Arithmetic(
         BuildinFn.Add,
         Expr.LiteralExpr(
           2.0
@@ -124,7 +124,7 @@ class TypeInferTest extends munit.FunSuite:
       variableName = Variable(tokenY),
       variableType = TInt,
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           y
@@ -180,7 +180,7 @@ class TypeInferTest extends munit.FunSuite:
       variableName = Variable(tokenY),
       variableType = TInt,
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           y
