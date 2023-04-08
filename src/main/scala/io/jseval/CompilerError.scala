@@ -2,6 +2,7 @@ package io.jseval
 
 enum CompilerError(msg: String):
   case NoExpectedParser(tokens: List[Token]) extends CompilerError(s"No expected parser for ${tokens.headOption}")
+  case NoExpectedInfixParser(tokens: List[Token]) extends CompilerError(s"No expected parser for ${tokens.headOption}")
   case ExpectExpression(tokens: List[Token]) extends CompilerError("ExpectExpression")
   case ExpectToken(token: Token) extends CompilerError(s"Expected Token in $token")
   case ExpectTokens(tokens: List[Token])

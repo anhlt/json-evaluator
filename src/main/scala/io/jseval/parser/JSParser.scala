@@ -12,7 +12,7 @@ case class JSParser() {
 
   def expression[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError]
-  ): F[ParserOut] = ???
+  ): F[ParserOut] = parsePrecedence(Precendence.LOWEST, tokens)
 
   implicit val jsParser: JSParser = this
 

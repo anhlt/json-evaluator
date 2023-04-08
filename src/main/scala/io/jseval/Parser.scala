@@ -304,7 +304,7 @@ object Parser {
   }
 
   // Parse the body within a pair of parentheses (the part after "(")
-  def parenBody[F[F]](
+  def parenBody[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
     expression(tokens).flatMap((parserOut) =>

@@ -49,5 +49,34 @@ case object DivideInfixParser extends InfixParser:
     (l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Div, l, r))
   val precedence: Precendence = Precendence.PRODUCT
 
+case object GreaterThanInfixParser extends InfixParser:
+  val parser: (Expr, Expr) => Expr =
+    (l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Greater, l, r))
+  val precedence: Precendence = Precendence.COMPARISON
+
+case object GreaterThanOrEqualInfixParser extends InfixParser:
+  val parser: (Expr, Expr) => Expr =
+    (l, r) => Buildin(BuildinFn.Comparison(BuildinFn.GreaterEqual, l, r))
+  val precedence: Precendence = Precendence.COMPARISON
+
+case object LessThanInfixParser extends InfixParser:
+  val parser: (Expr, Expr) => Expr =
+    (l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Less, l, r))
+  val precedence: Precendence = Precendence.COMPARISON
+
+case object LessThanOrEqualInfixParser extends InfixParser:
+  val parser: (Expr, Expr) => Expr =
+    (l, r) => Buildin(BuildinFn.Comparison(BuildinFn.LessEqual, l, r))
+  val precedence: Precendence = Precendence.COMPARISON
+
+case object EqualInfixParser extends InfixParser:
+  val parser: (Expr, Expr) => Expr =
+    (l, r) => Buildin(BuildinFn.Comparison(BuildinFn.Equal, l, r))
+  val precedence: Precendence = Precendence.EQUALITY
+
+case object NotEqualInfixParser extends InfixParser:
+  val parser: (Expr, Expr) => Expr =
+    (l, r) => Buildin(BuildinFn.Comparison(BuildinFn.NotEqual, l, r))
+  val precedence: Precendence = Precendence.EQUALITY
 
 
