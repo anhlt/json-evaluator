@@ -101,6 +101,43 @@ case class ParenthesisParser() extends PrefixParser {
 
 }
 
+case class ConditionPrefixParser()  extends PrefixParser {
+  def parse[F[_]](tokens: List[Token])(implicit
+      a: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[ParserOut] = {
+    tokens match
+      case Keyword.If :: rest =>
+        for {
+          parserOut <- JSParser.expression(rest)
+          rmn = parserOut.rmn
+          result <- rmn match
+            case Keyword.Then :: rmn =>
+              for {
+                parserOut2 <- JSParser.expression(rmn)
+                rmn2 = parserOut2.rmn
+                result <- rmn2 match
+                  case Keyword.Else :: rmn2 =>
+                    for {
+                      parserOut3 <- JSParser.expression(rmn2)
+                      rmn3 = parserOut3.rmn
+                    } yield ParserOut(
+                      Expression.Cond(
+                        parserOut.expr,
+                        parserOut2.expr,
+                        parserOut3.expr
+                      ),
+                      rmn3
+                    )
+                  case _ => a.raiseError(CompilerError.ExpectToken(Keyword.Then))
+              } yield (result)
+            case _ => a.raiseError(CompilerError.ExpectToken(Keyword.Else))
+        } yield (result)
+      case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
+  }
+}
+
+
 case class BracketPrefixParser() extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],

@@ -20,6 +20,7 @@ class NewParserTest extends munit.FunSuite:
 
   val tokenA = Literal.Identifier("a")
   val tokenB = Literal.Identifier("b")
+  val tokenC = Literal.Identifier("c")
   val tokenX = Literal.Identifier("x")
   val tokenY = Literal.Identifier("y")
   val tokenZ = Literal.Identifier("z")
@@ -384,9 +385,85 @@ class NewParserTest extends munit.FunSuite:
     assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
 
-  // test NOT and parenthesis and OR operator
-  test(s"parse_primary_boolean_not_or_2") {
+  // test NOT and parenthesis and OR operator (NOT (true OR false))
+  test(s"parse_primary_boolean_not_or_parenthesis") {
     val tokens = List(Bang, LeftParen, True, Or, False, RightParen)
     val parserOut = JSParser().expression(tokens)
-    
+
+    val expected = Buildin(
+      BuildinFn.Unary(
+        BuildinFn.Not,
+        Grouping(
+          Buildin(
+            BuildinFn.Logical(
+              BuildinFn.Or,
+              LiteralExpr(true),
+              LiteralExpr(false)
+            )
+          )
+        )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
+
+
+  // test conditional operator
+  test(s"parse_primary_conditional") {
+    val tokens = List(
+      Keyword.If,
+      Identifier("a"),
+      Keyword.Then,
+      Identifier("b"),
+      Keyword.Else,
+      Identifier("c")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Cond(
+      Variable(tokenA),
+      Variable(tokenB),
+      Variable(tokenC)
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  // test: if a == b then 2 else 4 + 8
+  test(s"parse_primary_conditional_2") {
+    val tokens = List(
+      Keyword.If,
+      Identifier("a"),
+      EqualEqual,
+      Identifier("b"),
+      Keyword.Then,
+      Number("2"),
+      Keyword.Else,
+      Number("4"),
+      Plus,
+      Number("8")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Cond(
+      Buildin(
+        BuildinFn.Comparison(
+          BuildinFn.Equal,
+          Variable(tokenA),
+          Variable(tokenB)
+        )
+      ),
+      LiteralExpr(2),
+      Buildin(
+        BuildinFn.Arithmetic(
+          BuildinFn.Add,
+          LiteralExpr(4),
+          LiteralExpr(8)
+        )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
