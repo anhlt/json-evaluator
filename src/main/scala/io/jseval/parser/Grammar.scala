@@ -11,16 +11,19 @@ object Grammar {
   )(implicit a: MonadError[F, CompilerError]): F[PrefixParser] = {
 
     tokens match
-      case Literal.Number(_) :: rest        => a.pure(LiteralParser())
-      case Literal.Str(_) :: rest           => a.pure(LiteralParser())
-      case Keyword.True :: rest             => a.pure(LiteralParser())
-      case Keyword.False :: rest            => a.pure(LiteralParser())
-      case Literal.Identifier(name) :: rest => IdentifierParser().pure[F]
-      case Operator.LeftParen :: rest       => a.pure(ParenthesisParser())
-      case Operator.LeftBracket :: rest     => a.pure(BracketPrefixParser())
-      case Operator.LeftBrace :: rest       => a.pure(BracePrefixParser())
-      case Operator.Bang :: rest            => a.pure(UnaryPrefixParser())
-      case Operator.Minus :: rest           => UnaryPrefixParser().pure[F]
+      case Literal.Number(_) :: rest        => LiteralParser.pure[F]
+      case Literal.Str(_) :: rest           => LiteralParser.pure[F]
+      case Keyword.True :: rest             => LiteralParser.pure[F]
+      case Keyword.False :: rest            => LiteralParser.pure[F]
+      case Literal.Identifier(name) :: rest => IdentifierParser.pure[F]
+      case Operator.LeftParen :: rest       => ParenthesisParser.pure[F]
+      case Operator.LeftBracket :: rest     => BracketPrefixParser.pure[F]
+      case Operator.LeftBrace :: rest       => BracePrefixParser.pure[F]
+      case Operator.Bang :: rest            => UnaryPrefixParser.pure[F]
+      case Operator.Minus :: rest           => UnaryPrefixParser.pure[F]
+      case Keyword.If :: rest               => ConditionPrefixParser.pure[F]
+      case Keyword.Fun :: rest              => FunctionPrefixParser.pure[F]
+      case Keyword.Let :: rest              => LetBindingPrefixParser.pure[F]
 
       case _ => a.raiseError(NoExpectedParser(tokens))
   }

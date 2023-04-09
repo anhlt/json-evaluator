@@ -11,14 +11,23 @@ import io.jseval.Operator
 import cats.implicits._
 import io.jseval.Expression.BuildinModule.BuildinFn
 import io.jseval.Expression.Buildin
+import io.jseval.Expression.Variable
+import io.jseval.Expression.Expr
+import java.security.Identity
+import io.jseval.Expression.Abs
+import io.jseval.TypModule.TAny
+import io.jseval.Expression.Binding
+import io.jseval.parser.Utils._
 
 trait PrefixParser {
   def parse[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, CompilerError], JSParser: JSParser): F[ParserOut]
+
+
 }
 
-case class LiteralParser() extends PrefixParser {
+case object LiteralParser extends PrefixParser {
 
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
@@ -38,7 +47,7 @@ case class LiteralParser() extends PrefixParser {
 
 }
 
-case class IdentifierParser() extends PrefixParser {
+case object IdentifierParser extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
@@ -50,7 +59,7 @@ case class IdentifierParser() extends PrefixParser {
   }
 }
 
-case class UnaryPrefixParser() extends PrefixParser {
+case object UnaryPrefixParser extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
@@ -74,7 +83,7 @@ case class UnaryPrefixParser() extends PrefixParser {
   }
 }
 
-case class ParenthesisParser() extends PrefixParser {
+case object ParenthesisParser extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
@@ -101,7 +110,7 @@ case class ParenthesisParser() extends PrefixParser {
 
 }
 
-case class ConditionPrefixParser()  extends PrefixParser {
+case object ConditionPrefixParser extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
@@ -129,7 +138,8 @@ case class ConditionPrefixParser()  extends PrefixParser {
                       ),
                       rmn3
                     )
-                  case _ => a.raiseError(CompilerError.ExpectToken(Keyword.Then))
+                  case _ =>
+                    a.raiseError(CompilerError.ExpectToken(Keyword.Then))
               } yield (result)
             case _ => a.raiseError(CompilerError.ExpectToken(Keyword.Else))
         } yield (result)
@@ -137,15 +147,146 @@ case class ConditionPrefixParser()  extends PrefixParser {
   }
 }
 
+/*
+object to parse function
+  fun x -> if x == 0 then 1 else x * fact(x - 1)
+  fun x y -> x + y
+ */
 
-case class BracketPrefixParser() extends PrefixParser {
+case object FunctionPrefixParser extends PrefixParser {
+  def parse[F[_]](tokens: List[Token])(implicit
+      a: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[ParserOut] = {
+    tokens match
+      case Keyword.Fun :: rest =>
+        for {
+          parserOut <- lambda(rest)
+        } yield (parserOut)
+      case _ => a.raiseError(CompilerError.ExpectToken(Keyword.Fun))
+  }
+
+  def lambda[F[_]](
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[ParserOut] = {
+
+    for {
+      argAndRemaining <- IdentifierParser.parse(tokens)
+      variable <- asVariable(argAndRemaining.expr)
+      bodyAndRmn <- lambda(argAndRemaining.rmn).recoverWith(_ =>
+        lamdaBody(argAndRemaining.rmn)
+      )
+
+    } yield ParserOut(
+      Abs(variableName = variable, variableType = TAny, body = bodyAndRmn.expr),
+      bodyAndRmn.rmn
+    )
+  }
+
+  def lamdaBody[F[_]](
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[ParserOut] = {
+    for {
+      arrowAndRmn <- consume(Operator.Arrow, tokens)
+      (arrow, rmn) = arrowAndRmn
+      bodyExpr <- JSParser.expression(rmn)
+    } yield (bodyExpr)
+
+  }
+
+}
+
+/*
+case object for let binding
+      |let z = 4
+      |let u = 3
+      |let sum = fun x y -> x + y
+      |in sum(z, u)
+
+ */
+case object LetBindingPrefixParser extends PrefixParser {
+  def parse[F[_]](tokens: List[Token])(implicit
+      a: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[ParserOut] = {
+    tokens match
+      case Keyword.Let :: rest =>
+        for {
+          parserOut <- letBinding(rest)
+        } yield (parserOut)
+      case _ => 
+        println("Let Parser tokens: " + tokens)
+        a.raiseError(CompilerError.ExpectToken(Keyword.Let))
+  }
+
+  def letBinding[F[_]](
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[ParserOut] = {
+
+    for {
+      isRecursive <- rec(tokens)
+      (isRec, afterRec) = isRecursive
+      _ = println("afterRec: " + afterRec)
+      identiferAndRmn <- IdentifierParser.parse(afterRec)
+      variable <- asVariable(identiferAndRmn.expr)
+      equalAndRmn <- consume(Operator.Equal, identiferAndRmn.rmn)
+      exprAndRmn <- JSParser.expression(equalAndRmn._2)
+      _ = println("expr and rmn"+ exprAndRmn)
+      result <- (for {
+        rs <- in(exprAndRmn.rmn)
+      } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.In) =>
+        LetBindingPrefixParser.parse(exprAndRmn.rmn)
+      })
+
+    } yield ParserOut(
+      Binding(isRec, variable, exprAndRmn.expr, result._1),
+      result._2
+    )
+  }
+
+
+  def rec[F[_]](
+      tokens: List[Token]
+  )(implicit
+      a: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[(Boolean, List[Token])] =
+    tokens match
+      case Keyword.Rec :: rest => a.pure(true, rest)
+      case _                   => a.pure(false, tokens)
+
+  def in[F[_]](
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[ParserOut] = {
+
+    for {
+      inAndRmn <- consume(Keyword.In, tokens)
+      (_, rmn) = inAndRmn
+      exprAndRmn <- JSParser.expression(rmn)
+    } yield exprAndRmn
+  }
+}
+
+case object BracketPrefixParser extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
   ): F[ParserOut] = ???
 }
 
-case class BracePrefixParser() extends PrefixParser {
+case object BracePrefixParser extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser

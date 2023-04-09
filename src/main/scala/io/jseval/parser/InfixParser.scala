@@ -13,7 +13,7 @@ trait InfixParser {
 
   def parse[F[_]](ts: List[Token], leftExpr: Expr)(implicit a: MonadError[F, CompilerError], jpParser: JSParser): F[ParserOut] = {
     for {
-      rightExprAndRemaining <- jpParser.parsePrecedence(precedence, ts)
+      rightExprAndRemaining <- jpParser.expression(ts, precedence = precedence)
     } yield (ParserOut(parser(leftExpr, rightExprAndRemaining.expr), rightExprAndRemaining.rmn))
   }
 }

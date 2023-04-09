@@ -154,7 +154,6 @@ object Parser {
       bodyAndRmn <- lambda(argAndRemaining.rmn).recoverWith(_ =>
         lamdaBody(argAndRemaining.rmn)
       )
-      // .recover(_ => expression(afterIdent))
 
     } yield ParserOut(
       Abs(variableName = variable, variableType = TAny, body = bodyAndRmn.expr),

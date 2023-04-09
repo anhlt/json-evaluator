@@ -5,16 +5,58 @@ import io.jseval.Parser.ParserOut
 import io.jseval.{Token, CompilerError}
 import cats.implicits._
 import io.jseval.parser.AndInfixParser.precedence
-import io.jseval.Expression.Expr
+import io.jseval.Expression.{Expr, App}
 import cats.parse.Parser
+import io.jseval.parser.Utils._
+import io.jseval.Operator
 
 case class JSParser() {
 
-  def expression[F[_]](tokens: List[Token])(implicit
+  def expression[F[_]](
+      tokens: List[Token],
+      precedence: Precendence = Precendence.LOWEST
+  )(implicit
       a: MonadError[F, CompilerError]
-  ): F[ParserOut] = parsePrecedence(Precendence.LOWEST, tokens)
+  ): F[ParserOut] =
+    app(tokens).orElse(parsePrecedence(precedence, tokens))
 
   implicit val jsParser: JSParser = this
+
+  def app[F[_]](
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError],
+      jsParser: JSParser
+  ): F[ParserOut] = {
+
+    for {
+      bodyAndRmn <- IdentifierParser.parse(tokens)
+      leftParenAndRmn <- consume(Operator.LeftParen, bodyAndRmn.rmn)
+      (_, rmnAfterLP) = leftParenAndRmn
+      argAndRemaining <- appArgs(bodyAndRmn.expr, rmnAfterLP)
+      rParenAndRmn <- consume(Operator.RightParen, argAndRemaining.rmn)
+    } yield ParserOut(argAndRemaining.expr, rParenAndRmn._2)
+
+  }
+
+  def appArgs[F[_]](
+      previousExpr: Expr,
+      tokens: List[Token]
+  )(implicit me: MonadError[F, CompilerError]): F[ParserOut] = {
+
+    for {
+      argAndRemaining <- expression(tokens)
+      nextResult <- (for {
+        commaAndTokens <- consume(Operator.Comma, argAndRemaining.rmn)
+        (comma, afterComma) = commaAndTokens
+        rs <- appArgs(App(previousExpr, argAndRemaining.expr), afterComma)
+      } yield (rs)).recover({ case CompilerError.ExpectToken(Operator.Comma) =>
+        ParserOut(App(previousExpr, argAndRemaining.expr), argAndRemaining.rmn)
+      })
+
+    } yield nextResult
+
+  }
 
   def parsePrecedence[F[_]](precedence: Precendence, tokens: List[Token])(
       implicit a: MonadError[F, CompilerError]

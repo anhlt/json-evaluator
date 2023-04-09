@@ -15,6 +15,7 @@ import io.jseval.Expression.BuildinModule.BuildinFn.Sub
 import io.jseval.Expression.BuildinModule.BuildinFn.Mul
 import io.jseval.parser.{JSParser, Precendence}
 import io.jseval.Expression.BuildinModule.BuildinFn.UnaryFn
+import io.jseval.TypModule.TAny
 
 class NewParserTest extends munit.FunSuite:
 
@@ -26,17 +27,15 @@ class NewParserTest extends munit.FunSuite:
   val tokenZ = Literal.Identifier("z")
   val tokenU = Literal.Identifier("u")
   val tokenN = Literal.Identifier("n")
-  val factorialName = Literal.Identifier("fact")
+  val tokenF = Literal.Identifier("f")
+  val tokenFact = Literal.Identifier("fact")
 
-  val sumToken = Literal.Identifier("sum")
+  val tokenSum = Literal.Identifier("sum")
 
-  val x = Variable(tokenX)
-  val y = Variable(tokenY)
-  val factorialVariable = Variable(factorialName)
 
   /*
   while test for parsing Literal and AND OR oprator for JSParser
-   */
+  */
 
   test(s"parse_primary_number") {
 
@@ -408,7 +407,6 @@ class NewParserTest extends munit.FunSuite:
     assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
 
-
   // test conditional operator
   test(s"parse_primary_conditional") {
     val tokens = List(
@@ -467,3 +465,338 @@ class NewParserTest extends munit.FunSuite:
     assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
 
+  // test: 5 + if a == b then 6 else 8
+  test(s"parse_primary_conditional_3") {
+    val tokens = List(
+      Number("5"),
+      Plus,
+      Keyword.If,
+      Identifier("a"),
+      EqualEqual,
+      Identifier("b"),
+      Keyword.Then,
+      Number("6"),
+      Keyword.Else,
+      Number("8")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Buildin(
+      BuildinFn.Arithmetic(
+        BuildinFn.Add,
+        LiteralExpr(5),
+        Cond(
+          Buildin(
+            BuildinFn.Comparison(
+              BuildinFn.Equal,
+              Variable(tokenA),
+              Variable(tokenB)
+            )
+          ),
+          LiteralExpr(6),
+          LiteralExpr(8)
+        )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  // test app with multiple args: f(a, b)
+  test(s"parse_primary_app") {
+    val tokens = List(
+      Identifier("f"),
+      LeftParen,
+      Identifier("a"),
+      Comma,
+      Identifier("b"),
+      RightParen
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = App(
+      App(body = Variable(tokenF), arg = Variable(tokenA)),
+      arg = Variable(tokenB)
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  // test app with multiple args: f(a, b, c)
+  test(s"parse_primary_app_2") {
+    val tokens = List(
+      Identifier("f"),
+      LeftParen,
+      Identifier("a"),
+      Comma,
+      Identifier("b"),
+      Comma,
+      Identifier("c"),
+      RightParen
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = App(
+      App(
+        App(body = Variable(tokenF), arg = Variable(tokenA)),
+        arg = Variable(tokenB)
+      ),
+      arg = Variable(tokenC)
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  /*
+  Test Binding operator
+  Let a = 1
+  in a + 1
+   */
+  test(s"parse_binding") {
+    val tokens = List(
+      Keyword.Let,
+      Identifier("a"),
+      Equal,
+      Number("1"),
+      Keyword.In,
+      Identifier("a"),
+      Plus,
+      Number("1")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenA),
+      LiteralExpr(1),
+      Buildin(
+        BuildinFn.Arithmetic(
+          BuildinFn.Add,
+          Variable(tokenA),
+          LiteralExpr(1)
+        )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  /*
+  Test Lambda function and Abs Operator
+  fun x -> x + 1
+   */
+  test(s"parse_lambda") {
+    val tokens = List(
+      Keyword.Fun,
+      Identifier("x"),
+      Arrow,
+      Identifier("x"),
+      Plus,
+      Number("1")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Abs(
+      Variable(tokenX),
+      variableType = TAny,
+      body = Buildin(
+        BuildinFn.Arithmetic(
+          BuildinFn.Add,
+          Variable(tokenX),
+          LiteralExpr(1)
+        )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  /* Test Lambda function and Abs Operator
+  fun x y -> x + y
+   */
+  test(s"parse_lambda_2") {
+    val tokens = List(
+      Keyword.Fun,
+      Identifier("x"),
+      Identifier("y"),
+      Arrow,
+      Identifier("x"),
+      Plus,
+      Identifier("y")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Abs(
+      Variable(tokenX),
+      variableType = TAny,
+      body = Abs(
+        Variable(tokenY),
+        variableType = TAny,
+        body = Buildin(
+          BuildinFn.Arithmetic(
+            BuildinFn.Add,
+            Variable(tokenX),
+            Variable(tokenY)
+          )
+        )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  /* Test Lambda function and Abs Operator in Let
+    Let a = 1
+    Let b = 2
+    Let sum = fun x y -> x + y
+    In sum (a , b)
+  */
+  test(s"parse_lambda_3") {
+    val tokens = List(
+      Keyword.Let,
+      Identifier("a"),
+      Equal,
+      Number("1"),
+      Keyword.Let,
+      Identifier("b"),
+      Equal,
+      Number("2"),
+      Keyword.Let,
+      Identifier("sum"),
+      Equal,
+      Keyword.Fun,
+      Identifier("x"),
+      Identifier("y"),
+      Arrow,
+      Identifier("x"),
+      Plus,
+      Identifier("y"),
+      Keyword.In,
+      Identifier("sum"),
+      LeftParen,
+      Identifier("a"),
+      Comma,
+      Identifier("b"),
+      RightParen
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenA),
+      LiteralExpr(1),
+      Binding(
+        recursive = false,
+        Variable(tokenB),
+        LiteralExpr(2),
+        Binding(
+          recursive = false,
+          Variable(tokenSum),
+          Abs(
+            Variable(tokenX),
+            variableType = TAny,
+            body = Abs(
+              Variable(tokenY),
+              variableType = TAny,
+              body = Buildin(
+                BuildinFn.Arithmetic(
+                  BuildinFn.Add,
+                  Variable(tokenX),
+                  Variable(tokenY)
+                )
+              )
+            )
+          ),
+          App(
+            App(
+              body = Variable(tokenSum),
+              arg = Variable(tokenA)
+            ),
+            arg = Variable(tokenB)
+          )
+        )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+
+  /*
+  Test recursive function
+  let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+  in fact(5) 
+  */
+  test(s"parse_recursive_function") {
+    val tokens = List(
+      Keyword.Let,
+      Keyword.Rec,
+      Identifier("fact"),
+      Equal,
+      Keyword.Fun,
+      Identifier("x"),
+      Arrow,
+      Keyword.If,
+      Identifier("x"),
+      EqualEqual,
+      Number("0"),
+      Keyword.Then,
+      Number("1"),
+      Keyword.Else,
+      Identifier("x"),
+      Star,
+      Identifier("fact"),
+      LeftParen,
+      Identifier("x"),
+      Minus,
+      Number("1"),
+      RightParen,
+      Keyword.In,
+      Identifier("fact"),
+      LeftParen,
+      Number("5"),
+      RightParen
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Binding(
+      recursive = true,
+      Variable(tokenFact),
+      Abs(
+        Variable(tokenX),
+        variableType = TAny,
+        body = Cond(
+          Buildin(
+            BuildinFn.Comparison(
+              BuildinFn.Equal,
+              Variable(tokenX),
+              LiteralExpr(0)
+            )
+          ),
+          LiteralExpr(1),
+          Buildin(
+            BuildinFn.Arithmetic(
+              BuildinFn.Mul,
+              Variable(tokenX),
+              App(
+                body = Variable(tokenFact),
+                arg = Buildin(
+                  BuildinFn.Arithmetic(
+                    BuildinFn.Sub,
+                    Variable(tokenX),
+                    LiteralExpr(1)
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      App(
+        body = Variable(tokenFact),
+        arg = LiteralExpr(5)
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
