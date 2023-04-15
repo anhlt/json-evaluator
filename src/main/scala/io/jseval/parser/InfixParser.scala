@@ -6,15 +6,22 @@ import io.jseval.Expression.BuildinModule.BuildinFn
 import io.jseval.Expression.{Buildin, Expr}
 import io.jseval.Parser.ParserOut
 import cats.implicits._
+import io.jseval.Expression.TupleExpr
 
 trait InfixParser {
   val parser: (Expr, Expr) => Expr
   val precedence: Precendence
 
-  def parse[F[_]](ts: List[Token], leftExpr: Expr)(implicit a: MonadError[F, CompilerError], jpParser: JSParser): F[ParserOut] = {
+  def parse[F[_]](ts: List[Token], leftExpr: Expr)(implicit
+      a: MonadError[F, CompilerError],
+      jpParser: JSParser
+  ): F[ParserOut] = {
     for {
       rightExprAndRemaining <- jpParser.expression(ts, precedence = precedence)
-    } yield (ParserOut(parser(leftExpr, rightExprAndRemaining.expr), rightExprAndRemaining.rmn))
+    } yield (ParserOut(
+      parser(leftExpr, rightExprAndRemaining.expr),
+      rightExprAndRemaining.rmn
+    ))
   }
 }
 
@@ -79,4 +86,7 @@ case object NotEqualInfixParser extends InfixParser:
     (l, r) => Buildin(BuildinFn.Comparison(BuildinFn.NotEqual, l, r))
   val precedence: Precendence = Precendence.EQUALITY
 
-
+case object TupleInfixParser extends InfixParser:
+  val parser: (Expr, Expr) => Expr =
+    (l, r) => TupleExpr(l, r)
+  val precedence: Precendence = Precendence.RECORD

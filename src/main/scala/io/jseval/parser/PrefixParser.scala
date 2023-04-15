@@ -104,7 +104,7 @@ case object ParenthesisParser extends PrefixParser {
       rmn = parserOut.rmn
       result <- rmn match
         case Operator.RightParen :: rmn =>
-          a.pure(ParserOut(Expression.Grouping(parserOut.expr), rmn))
+          a.pure(ParserOut(parserOut.expr, rmn))
         case _ => a.raiseError(CompilerError.ExpectClosing(rmn))
     } yield (result)
 

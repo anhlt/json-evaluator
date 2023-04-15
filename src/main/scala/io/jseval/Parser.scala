@@ -309,7 +309,7 @@ object Parser {
     expression(tokens).flatMap((parserOut) =>
       parserOut.rmn match
         case Operator.RightParen :: rmn =>
-          a.pure(ParserOut(Expression.Grouping(parserOut.expr), rmn))
+          a.pure(ParserOut(parserOut.expr, rmn))
         case _ => a.raiseError(CompilerError.ExpectClosing(parserOut.rmn))
     )
 

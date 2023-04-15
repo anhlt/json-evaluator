@@ -32,10 +32,9 @@ class NewParserTest extends munit.FunSuite:
 
   val tokenSum = Literal.Identifier("sum")
 
-
   /*
   while test for parsing Literal and AND OR oprator for JSParser
-  */
+   */
 
   test(s"parse_primary_number") {
 
@@ -273,13 +272,11 @@ class NewParserTest extends munit.FunSuite:
             Buildin(
               BuildinFn.Arithmetic(
                 BuildinFn.Mul,
-                Grouping(
-                  Buildin(
-                    BuildinFn.Arithmetic(
-                      BuildinFn.Add,
-                      LiteralExpr(1),
-                      LiteralExpr(2)
-                    )
+                Buildin(
+                  BuildinFn.Arithmetic(
+                    BuildinFn.Add,
+                    LiteralExpr(1),
+                    LiteralExpr(2)
                   )
                 ),
                 LiteralExpr(3)
@@ -292,13 +289,11 @@ class NewParserTest extends munit.FunSuite:
           BuildinFn.Comparison(
             BuildinFn.Less,
             LiteralExpr(5),
-            Grouping(
-              Buildin(
-                BuildinFn.Arithmetic(
-                  BuildinFn.Add,
-                  LiteralExpr(6),
-                  LiteralExpr(7)
-                )
+            Buildin(
+              BuildinFn.Arithmetic(
+                BuildinFn.Add,
+                LiteralExpr(6),
+                LiteralExpr(7)
               )
             )
           )
@@ -392,13 +387,11 @@ class NewParserTest extends munit.FunSuite:
     val expected = Buildin(
       BuildinFn.Unary(
         BuildinFn.Not,
-        Grouping(
-          Buildin(
-            BuildinFn.Logical(
-              BuildinFn.Or,
-              LiteralExpr(true),
-              LiteralExpr(false)
-            )
+        Buildin(
+          BuildinFn.Logical(
+            BuildinFn.Or,
+            LiteralExpr(true),
+            LiteralExpr(false)
           )
         )
       )
@@ -650,7 +643,7 @@ class NewParserTest extends munit.FunSuite:
     Let b = 2
     Let sum = fun x y -> x + y
     In sum (a , b)
-  */
+   */
   test(s"parse_lambda_3") {
     val tokens = List(
       Keyword.Let,
@@ -721,12 +714,11 @@ class NewParserTest extends munit.FunSuite:
     assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
 
-
   /*
   Test recursive function
   let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
-  in fact(5) 
-  */
+  in fact(5)
+   */
   test(s"parse_recursive_function") {
     val tokens = List(
       Keyword.Let,
@@ -796,6 +788,103 @@ class NewParserTest extends munit.FunSuite:
         body = Variable(tokenFact),
         arg = LiteralExpr(5)
       )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  // Test tuple expression
+  // Let a = (1, 2)
+  // in a
+  test(s"parse_tuple") {
+    val tokens = List(
+      Keyword.Let,
+      Identifier("a"),
+      Equal,
+      LeftParen,
+      Number("1"),
+      Comma,
+      Number("2"),
+      RightParen,
+      Keyword.In,
+      Identifier("a")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenA),
+      TupleExpr(LiteralExpr(1), LiteralExpr(2)),
+      Variable(tokenA)
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  // test nested tuple expression
+  // Let a = (1, 2, 3)
+  // in a
+  test(s"parse_nested_tuple") {
+    val tokens = List(
+      Keyword.Let,
+      Identifier("a"),
+      Equal,
+      LeftParen,
+      Number("1"),
+      Comma,
+      Number("2"),
+      Comma,
+      Number("3"),
+      RightParen,
+      Keyword.In,
+      Identifier("a")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenA),
+      TupleExpr(
+        TupleExpr(
+          LiteralExpr(1),
+          LiteralExpr(2)
+        ),
+        LiteralExpr(3)
+      ),
+      Variable(tokenA)
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  // test condition: if (4 > 5) and true then 1 else 2
+  test(s"parse_condition") {
+    val tokens = List(
+      Keyword.If,
+      LeftParen,
+      Number("4"),
+      Greater,
+      Number("5"),
+      RightParen,
+      Keyword.And,
+      Keyword.True,
+      Keyword.Then,
+      Number("1"),
+      Keyword.Else,
+      Number("2")
+    )
+    val parserOut = JSParser().expression(tokens)
+
+    val expected = Cond(
+      Buildin(
+        BuildinFn.Comparison(
+          BuildinFn.Greater,
+          LiteralExpr(4),
+          LiteralExpr(5)
+        )
+      ),
+      LiteralExpr(1),
+      LiteralExpr(2)
     )
 
     assertEquals(parserOut, Right(ParserOut(expected, List())))
