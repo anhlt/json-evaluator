@@ -15,18 +15,18 @@ object Grammar {
     tokens match
       case Literal.Number(_) :: rest => LiteralParser.pure[F]
       case Literal.Str(_) :: rest    => LiteralParser.pure[F]
-      case Keyword.True :: rest      => LiteralParser.pure[F]
-      case Keyword.False :: rest     => LiteralParser.pure[F]
+      case Keyword.TrueKw :: rest      => LiteralParser.pure[F]
+      case Keyword.FalseKw :: rest     => LiteralParser.pure[F]
 
       case Literal.Identifier(name) :: rest => IdentifierParser.pure[F]
-      case Operator.LeftParen :: rest       => ParenthesisParser.pure[F]
-      case Operator.LeftBracket :: rest     => BracketPrefixParser.pure[F]
-      case Operator.LeftBrace :: rest       => BracePrefixParser.pure[F]
-      case Operator.Bang :: rest            => UnaryPrefixParser.pure[F]
-      case Operator.Minus :: rest           => UnaryPrefixParser.pure[F]
-      case Keyword.If :: rest               => ConditionPrefixParser.pure[F]
-      case Keyword.Fun :: rest              => FunctionPrefixParser.pure[F]
-      case Keyword.Let :: rest              => LetBindingPrefixParser.pure[F]
+      case Operator.LeftParenToken :: rest       => ParenthesisParser.pure[F]
+      case Operator.LeftBracketToken :: rest     => BracketPrefixParser.pure[F]
+      case Operator.LeftBraceToken :: rest       => BracePrefixParser.pure[F]
+      case Operator.BangToken :: rest            => UnaryPrefixParser.pure[F]
+      case Operator.MinusToken :: rest           => UnaryPrefixParser.pure[F]
+      case Keyword.IfKw :: rest               => ConditionPrefixParser.pure[F]
+      case Keyword.FunKw :: rest              => FunctionPrefixParser.pure[F]
+      case Keyword.LetKw :: rest              => LetBindingPrefixParser.pure[F]
 
       case _ => a.raiseError(NoExpectedParser(tokens))
   }
@@ -61,21 +61,21 @@ object Grammar {
       tokens: List[Token]
   )(implicit a: MonadError[F, CompilerError]): F[InfixExprParser] = {
     tokens match
-      case Keyword.Or :: rest          => OrInfixParser.pure[F]
-      case Keyword.And :: rest         => AndInfixParser.pure[F]
-      case Operator.Plus :: rest       => PlusInfixParser.pure[F]
-      case Operator.Minus :: rest      => MinusInfixParser.pure[F]
-      case Operator.Star :: rest       => MultiplyInfixParser.pure[F]
-      case Operator.Slash :: rest      => DivideInfixParser.pure[F]
-      case Operator.EqualEqual :: rest => EqualInfixParser.pure[F]
-      case Operator.BangEqual :: rest  => NotEqualInfixParser.pure[F]
-      case Operator.Less :: rest       => LessThanInfixParser.pure[F]
-      case Operator.Greater :: rest    => GreaterThanInfixParser.pure[F]
-      case Operator.GreaterEqual :: rest =>
+      case Keyword.OrKw :: rest          => OrInfixParser.pure[F]
+      case Keyword.AndKw :: rest         => AndInfixParser.pure[F]
+      case Operator.PlusToken :: rest       => PlusInfixParser.pure[F]
+      case Operator.MinusToken :: rest      => MinusInfixParser.pure[F]
+      case Operator.StarToken :: rest       => MultiplyInfixParser.pure[F]
+      case Operator.SlashToken :: rest      => DivideInfixParser.pure[F]
+      case Operator.EqualEqualToken :: rest => EqualInfixParser.pure[F]
+      case Operator.BangEqualToken :: rest  => NotEqualInfixParser.pure[F]
+      case Operator.LessToken :: rest       => LessThanInfixParser.pure[F]
+      case Operator.GreaterToken :: rest    => GreaterThanInfixParser.pure[F]
+      case Operator.GreaterEqualToken :: rest =>
         GreaterThanOrEqualInfixParser.pure[F]
-      case Operator.LessEqual :: rest => LessThanOrEqualInfixParser.pure[F]
+      case Operator.LessEqualToken :: rest => LessThanOrEqualInfixParser.pure[F]
 
-      case Operator.Comma :: rest => TupleInfixParser.pure[F]
+      case Operator.CommaToken :: rest => TupleInfixParser.pure[F]
       case _                      => a.raiseError(NoExpectedInfixParser(tokens))
   }
 

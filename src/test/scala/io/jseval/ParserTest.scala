@@ -49,7 +49,7 @@ class ParserTest extends munit.FunSuite:
 
   test("parse_unary") {
     val ts = List(
-      Minus,
+      MinusToken,
       Number(
         "3"
       )
@@ -70,12 +70,12 @@ class ParserTest extends munit.FunSuite:
       Number(
         "5"
       ),
-      Star,
+      StarToken,
       Number(
         "6"
       ),
-      Star,
-      Minus,
+      StarToken,
+      MinusToken,
       Number(
         "4"
       )
@@ -115,18 +115,18 @@ class ParserTest extends munit.FunSuite:
     println("f (1, 2, g(1, 2));")
     val ts = List(
       Literal.Identifier("f"),
-      Operator.LeftParen,
+      Operator.LeftParenToken,
       Literal.Number("1"),
-      Operator.Comma,
+      Operator.CommaToken,
       Literal.Number("2"),
-      Operator.Comma,
+      Operator.CommaToken,
       Literal.Identifier("g"),
-      Operator.LeftParen,
+      Operator.LeftParenToken,
       Literal.Number("1"),
-      Operator.Comma,
+      Operator.CommaToken,
       Literal.Number("2"),
-      Operator.RightParen,
-      Operator.RightParen
+      Operator.RightParenToken,
+      Operator.RightParenToken
     )
 
     val want = App(

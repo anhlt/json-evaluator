@@ -40,9 +40,9 @@ case object LiteralParser extends PrefixExprParser {
         a.pure(ParserOut(Expression.LiteralExpr(l.toDouble), rest))
       case Literal.Str(l) :: rest =>
         a.pure(ParserOut(Expression.LiteralExpr(l), rest))
-      case Keyword.True :: rest =>
+      case Keyword.TrueKw :: rest =>
         a.pure(ParserOut(Expression.LiteralExpr(true), rest))
-      case Keyword.False :: rest =>
+      case Keyword.FalseKw :: rest =>
         a.pure(ParserOut(Expression.LiteralExpr(false), rest))
       case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
   }
@@ -63,7 +63,7 @@ case object IdentifierParser extends PrefixExprParser {
       case Literal.Identifier(name) :: rest =>
         val variableExpr = Expression.Variable(Literal.Identifier(name))
         rest match {
-          case Operator.LeftParen :: tokensAfterLeft =>
+          case Operator.LeftParenToken :: tokensAfterLeft =>
             app(
               variableExpr,
               rest
@@ -83,10 +83,10 @@ case object IdentifierParser extends PrefixExprParser {
   ): F[ParserResult[Expr]] = {
 
     for {
-      leftParenAndRmn <- consume(Operator.LeftParen, tokens)
+      leftParenAndRmn <- consume(Operator.LeftParenToken, tokens)
       (_, rmnAfterLP) = leftParenAndRmn
       argAndRemaining <- appArgs(callerExpr, rmnAfterLP)
-      rParenAndRmn <- consume(Operator.RightParen, argAndRemaining.rmn)
+      rParenAndRmn <- consume(Operator.RightParenToken, argAndRemaining.rmn)
     } yield ParserOut(argAndRemaining.expr, rParenAndRmn._2)
 
   }
@@ -105,10 +105,10 @@ case object IdentifierParser extends PrefixExprParser {
         precedence = Precendence.LOGICAL_OR
       ) // could be conflix with tuple -> so we set precendece equal to nearest precedence which is OR
       nextResult <- (for {
-        commaAndTokens <- consume(Operator.Comma, argAndRemaining.rmn)
+        commaAndTokens <- consume(Operator.CommaToken, argAndRemaining.rmn)
         (comma, afterComma) = commaAndTokens
         rs <- appArgs(App(callerExpr, argAndRemaining.expr), afterComma)
-      } yield (rs)).recover({ case CompilerError.ExpectToken(Operator.Comma) =>
+      } yield (rs)).recover({ case CompilerError.ExpectToken(Operator.CommaToken) =>
         ParserOut(App(callerExpr, argAndRemaining.expr), argAndRemaining.rmn)
       })
 
@@ -123,14 +123,14 @@ case object UnaryPrefixParser extends PrefixExprParser {
       JSParser: JSParser
   ): F[ParserResult[Expr]] = {
     tokens match
-      case Operator.Minus :: rest =>
+      case Operator.MinusToken :: rest =>
         for {
           parserOut <- JSParser.parsePrecedence(Precendence.UNARY, rest)
         } yield ParserOut(
           Buildin(BuildinFn.Unary(BuildinFn.Negate, parserOut.expr)),
           parserOut.rmn
         )
-      case Operator.Bang :: rest =>
+      case Operator.BangToken :: rest =>
         for {
           parserOut <- JSParser.parsePrecedence(Precendence.UNARY, rest)
         } yield ParserOut(
@@ -148,7 +148,7 @@ case object ParenthesisParser extends PrefixExprParser {
   ): F[ParserResult[Expr]] = {
 
     tokens match
-      case Operator.LeftParen :: rest =>
+      case Operator.LeftParenToken :: rest =>
         parenBody(rest, JSParser)
       case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
   }
@@ -161,7 +161,7 @@ case object ParenthesisParser extends PrefixExprParser {
       parserOut <- JSParser.expression(tokens)
       rmn = parserOut.rmn
       result <- rmn match
-        case Operator.RightParen :: rmn =>
+        case Operator.RightParenToken :: rmn =>
           a.pure(ParserOut(parserOut.expr, rmn))
         case _ => a.raiseError(CompilerError.ExpectClosing(rmn))
     } yield (result)
@@ -174,17 +174,17 @@ case object ConditionPrefixParser extends PrefixExprParser {
       JSParser: JSParser
   ): F[ParserResult[Expr]] = {
     tokens match
-      case Keyword.If :: rest =>
+      case Keyword.IfKw :: rest =>
         for {
           parserOut <- JSParser.expression(rest)
           rmn = parserOut.rmn
           result <- rmn match
-            case Keyword.Then :: rmn =>
+            case Keyword.ThenKw :: rmn =>
               for {
                 parserOut2 <- JSParser.expression(rmn)
                 rmn2 = parserOut2.rmn
                 result <- rmn2 match
-                  case Keyword.Else :: rmn2 =>
+                  case Keyword.ElseKw :: rmn2 =>
                     for {
                       parserOut3 <- JSParser.expression(rmn2)
                       rmn3 = parserOut3.rmn
@@ -197,9 +197,9 @@ case object ConditionPrefixParser extends PrefixExprParser {
                       rmn3
                     )
                   case _ =>
-                    a.raiseError(CompilerError.ExpectToken(Keyword.Then))
+                    a.raiseError(CompilerError.ExpectToken(Keyword.ThenKw))
               } yield (result)
-            case _ => a.raiseError(CompilerError.ExpectToken(Keyword.Else))
+            case _ => a.raiseError(CompilerError.ExpectToken(Keyword.ElseKw))
         } yield (result)
       case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
   }
@@ -217,11 +217,11 @@ case object FunctionPrefixParser extends PrefixExprParser {
       JSParser: JSParser
   ): F[ParserResult[Expr]] = {
     tokens match
-      case Keyword.Fun :: rest =>
+      case Keyword.FunKw :: rest =>
         for {
           parserOut <- lambda(rest)
         } yield (parserOut)
-      case _ => a.raiseError(CompilerError.ExpectToken(Keyword.Fun))
+      case _ => a.raiseError(CompilerError.ExpectToken(Keyword.FunKw))
   }
 
   def lambda[F[_]](
@@ -251,7 +251,7 @@ case object FunctionPrefixParser extends PrefixExprParser {
       JSParser: JSParser
   ): F[ParserResult[Expr]] = {
     for {
-      arrowAndRmn <- consume(Operator.Arrow, tokens)
+      arrowAndRmn <- consume(Operator.ArrowToken, tokens)
       (arrow, rmn) = arrowAndRmn
       bodyExpr <- JSParser.expression(rmn)
     } yield (bodyExpr)
@@ -274,13 +274,13 @@ case object LetBindingPrefixParser extends PrefixExprParser {
       JSParser: JSParser
   ): F[ParserResult[Expr]] = {
     tokens match
-      case Keyword.Let :: rest =>
+      case Keyword.LetKw :: rest =>
         for {
           parserOut <- letBinding(rest)
         } yield (parserOut)
       case _ =>
         println("Let Parser tokens: " + tokens)
-        a.raiseError(CompilerError.ExpectToken(Keyword.Let))
+        a.raiseError(CompilerError.ExpectToken(Keyword.LetKw))
   }
 
   def letBinding[F[_]](
@@ -296,12 +296,12 @@ case object LetBindingPrefixParser extends PrefixExprParser {
       _ = println("afterRec: " + afterRec)
       identiferAndRmn <- IdentifierParser.parse(afterRec)
       variable <- asVariable(identiferAndRmn.expr)
-      equalAndRmn <- consume(Operator.Equal, identiferAndRmn.rmn)
+      equalAndRmn <- consume(Operator.EqualToken, identiferAndRmn.rmn)
       exprAndRmn <- JSParser.expression(equalAndRmn._2)
       _ = println("expr and rmn" + exprAndRmn)
       result: ParserResult[Expr] <- (for {
         rs <- in(exprAndRmn.rmn)
-      } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.In) =>
+      } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.InKw) =>
         LetBindingPrefixParser.parse(exprAndRmn.rmn)
       })
 
@@ -318,7 +318,7 @@ case object LetBindingPrefixParser extends PrefixExprParser {
       JSParser: JSParser
   ): F[(Boolean, List[Token])] =
     tokens match
-      case Keyword.Rec :: rest => a.pure(true, rest)
+      case Keyword.RecKw :: rest => a.pure(true, rest)
       case _                   => a.pure(false, tokens)
 
   def in[F[_]](
@@ -329,7 +329,7 @@ case object LetBindingPrefixParser extends PrefixExprParser {
   ): F[ParserResult[Expr]] = {
 
     for {
-      inAndRmn <- consume(Keyword.In, tokens)
+      inAndRmn <- consume(Keyword.InKw, tokens)
       (_, rmn) = inAndRmn
       exprAndRmn <- JSParser.expression(rmn)
     } yield exprAndRmn

@@ -27,9 +27,9 @@ case object PrimaryParser extends TypePrefixParser {
   ): F[Typ] = {
     tokens match {
       case Keyword.Unit :: rest    => TUnit.pure[F]
-      case Keyword.Int :: rest     => TInt.pure[F]
-      case Keyword.Boolean :: rest => TBoolean.pure[F]
-      case Keyword.String :: rest  => TString.pure[F]
+      case Keyword.IntKw :: rest     => TInt.pure[F]
+      case Keyword.BooleanKw :: rest => TBoolean.pure[F]
+      case Keyword.StringKw :: rest  => TString.pure[F]
     }
   }
 }

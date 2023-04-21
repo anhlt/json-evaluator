@@ -3,20 +3,13 @@ package io.jseval
 import cats.*
 import cats.implicits.*
 import Expression.*
-import Expression.BuildinModule.*
 import Expression.BuildinModule.BuildinFn
 import Expression.ValueModule.*
 import Keyword.*
 import Operator.*
 import Literal.*
-import io.jseval.Expression.BuildinModule.BuildinFn.Arithmetic
-import io.jseval.Expression.BuildinModule.BuildinFn.Sub
-import io.jseval.Expression.BuildinModule.BuildinFn.Mul
 import io.jseval.parser.{JSParser, ParserOut, Precendence}
-import io.jseval.Expression.BuildinModule.BuildinFn.UnaryFn
 import io.jseval.TypModule.TAny
-import io.jseval.Expression.BuildinModule.BuildinFn.Logical
-import io.jseval.Expression.BuildinModule.BuildinFn.LogicalFn
 
 class NewParserTest extends munit.FunSuite:
 
@@ -57,14 +50,14 @@ class NewParserTest extends munit.FunSuite:
   }
 
   test(s"parse_primary_boolean") {
-    val tokens = List(True)
+    val tokens = List(TrueKw)
     val parserOut = JSParser().parsePrecedence(Precendence.LOWEST, tokens)
     assertEquals(parserOut, Right(ParserOut(LiteralExpr(true), List())))
   }
 
   //   test for parsing AND OR operator for JSParser
   test(s"parse_primary_boolean_and") {
-    val tokens = List(True, And, False)
+    val tokens = List(TrueKw, AndKw, FalseKw)
     val parserOut = JSParser().parsePrecedence(Precendence.LOWEST, tokens)
 
     val expected = Buildin(
@@ -78,9 +71,9 @@ class NewParserTest extends munit.FunSuite:
     assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
 
-  //   test combination of And and Or precedence
+  //   test combination of And andOrKw precedence
   test(s"parse_primary_boolean_and_or") {
-    val tokens = List(True, And, False, Or, True)
+    val tokens = List(TrueKw, AndKw, FalseKw, OrKw, TrueKw)
     val parserOut = JSParser().parsePrecedence(Precendence.LOWEST, tokens)
 
     val expected = Buildin(
@@ -100,9 +93,9 @@ class NewParserTest extends munit.FunSuite:
     assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
 
-  // test combinataion of Or and And precedence
+  // test combinataion ofOrKw and And precedence
   test(s"parse_primary_boolean_or_and") {
-    val tokens = List(True, Or, False, And, True)
+    val tokens = List(TrueKw, OrKw, FalseKw, AndKw, TrueKw)
     val parserOut = JSParser().parsePrecedence(Precendence.LOWEST, tokens)
 
     val expected = Buildin(
@@ -124,7 +117,7 @@ class NewParserTest extends munit.FunSuite:
 
   // test for multiple AND operator
   test(s"parse_primary_boolean_and_and") {
-    val tokens = List(True, And, False, And, True)
+    val tokens = List(TrueKw, AndKw, FalseKw, AndKw, TrueKw)
     val parserOut = JSParser().parsePrecedence(Precendence.LOWEST, tokens)
 
     val expected = Buildin(
@@ -148,13 +141,13 @@ class NewParserTest extends munit.FunSuite:
   test(s"parse_primary_arithmetic") {
     val tokens = List(
       Number("1"),
-      Plus,
+      PlusToken,
       Number("2"),
-      Star,
+      StarToken,
       Number("3"),
-      Minus,
+      MinusToken,
       Number("6"),
-      Slash,
+      SlashToken,
       Number("7")
     )
     val parserOut = JSParser().parsePrecedence(Precendence.LOWEST, tokens)
@@ -192,15 +185,15 @@ class NewParserTest extends munit.FunSuite:
   test(s"parse_primary_complex_boolean") {
     val tokens = List(
       Number("1"),
-      Greater,
+      GreaterToken,
       Number("2"),
-      Or,
+      OrKw,
       Number("3"),
-      EqualEqual,
+      EqualEqualToken,
       Number("4"),
-      And,
+      AndKw,
       Number("5"),
-      Less,
+      LessToken,
       Number("6")
     )
     val parserOut = JSParser().expression(tokens)
@@ -244,23 +237,23 @@ class NewParserTest extends munit.FunSuite:
   // test (1 + 2) * 3 > 4 OR 5 < (6 + 7)
   test(s"parse_primary_complex_boolean_2") {
     val tokens = List(
-      LeftParen,
+      LeftParenToken,
       Number("1"),
-      Plus,
+      PlusToken,
       Number("2"),
-      RightParen,
-      Star,
+      RightParenToken,
+      StarToken,
       Number("3"),
-      Greater,
+      GreaterToken,
       Number("4"),
-      Or,
+      OrKw,
       Number("5"),
-      Less,
-      LeftParen,
+      LessToken,
+      LeftParenToken,
       Number("6"),
-      Plus,
+      PlusToken,
       Number("7"),
-      RightParen
+      RightParenToken
     )
     val parserOut = JSParser().expression(tokens)
 
@@ -309,9 +302,9 @@ class NewParserTest extends munit.FunSuite:
   test(s"parse_primary_complex_boolean_3") {
     val tokens = List(
       Identifier("a"),
-      Plus,
+      PlusToken,
       Identifier("b"),
-      Greater,
+      GreaterToken,
       Number("5")
     )
     val parserOut = JSParser().expression(tokens)
@@ -336,9 +329,9 @@ class NewParserTest extends munit.FunSuite:
   // test unary: -a + b
   test(s"parse_primary_unary") {
     val tokens = List(
-      Minus,
+      MinusToken,
       Identifier("a"),
-      Plus,
+      PlusToken,
       Identifier("b")
     )
     val parserOut = JSParser().expression(tokens)
@@ -361,7 +354,7 @@ class NewParserTest extends munit.FunSuite:
 
   // test NOT and OR operator
   test(s"parse_primary_boolean_not_or") {
-    val tokens = List(Bang, True, Or, False)
+    val tokens = List(BangToken, TrueKw, OrKw, FalseKw)
     val parserOut = JSParser().expression(tokens)
 
     val expected = Buildin(
@@ -382,7 +375,7 @@ class NewParserTest extends munit.FunSuite:
 
   // test NOT and parenthesis and OR operator (NOT (true OR false))
   test(s"parse_primary_boolean_not_or_parenthesis") {
-    val tokens = List(Bang, LeftParen, True, Or, False, RightParen)
+    val tokens = List(BangToken, LeftParenToken, TrueKw, OrKw, FalseKw, RightParenToken)
     val parserOut = JSParser().expression(tokens)
 
     val expected = Buildin(
@@ -404,11 +397,11 @@ class NewParserTest extends munit.FunSuite:
   // test conditional operator
   test(s"parse_primary_conditional") {
     val tokens = List(
-      Keyword.If,
+      Keyword.IfKw,
       Identifier("a"),
-      Keyword.Then,
+      Keyword.ThenKw,
       Identifier("b"),
-      Keyword.Else,
+      Keyword.ElseKw,
       Identifier("c")
     )
     val parserOut = JSParser().expression(tokens)
@@ -425,15 +418,15 @@ class NewParserTest extends munit.FunSuite:
   // test: if a == b then 2 else 4 + 8
   test(s"parse_primary_conditional_2") {
     val tokens = List(
-      Keyword.If,
+      Keyword.IfKw,
       Identifier("a"),
-      EqualEqual,
+      EqualEqualToken,
       Identifier("b"),
-      Keyword.Then,
+      Keyword.ThenKw,
       Number("2"),
-      Keyword.Else,
+      Keyword.ElseKw,
       Number("4"),
-      Plus,
+      PlusToken,
       Number("8")
     )
     val parserOut = JSParser().expression(tokens)
@@ -463,14 +456,14 @@ class NewParserTest extends munit.FunSuite:
   test(s"parse_primary_conditional_3") {
     val tokens = List(
       Number("5"),
-      Plus,
-      Keyword.If,
+      PlusToken,
+      Keyword.IfKw,
       Identifier("a"),
-      EqualEqual,
+      EqualEqualToken,
       Identifier("b"),
-      Keyword.Then,
+      Keyword.ThenKw,
       Number("6"),
-      Keyword.Else,
+      Keyword.ElseKw,
       Number("8")
     )
     val parserOut = JSParser().expression(tokens)
@@ -500,11 +493,11 @@ class NewParserTest extends munit.FunSuite:
   test(s"parse_primary_app") {
     val tokens = List(
       Identifier("f"),
-      LeftParen,
+      LeftParenToken,
       Identifier("a"),
-      Comma,
+      CommaToken,
       Identifier("b"),
-      RightParen
+      RightParenToken
     )
     val parserOut = JSParser().expression(tokens)
 
@@ -520,13 +513,13 @@ class NewParserTest extends munit.FunSuite:
   test(s"parse_primary_app_2") {
     val tokens = List(
       Identifier("f"),
-      LeftParen,
+      LeftParenToken,
       Identifier("a"),
-      Comma,
+      CommaToken,
       Identifier("b"),
-      Comma,
+      CommaToken,
       Identifier("c"),
-      RightParen
+      RightParenToken
     )
     val parserOut = JSParser().expression(tokens)
 
@@ -548,13 +541,13 @@ class NewParserTest extends munit.FunSuite:
    */
   test(s"parse_binding") {
     val tokens = List(
-      Keyword.Let,
+      Keyword.LetKw,
       Identifier("a"),
-      Equal,
+      EqualToken,
       Number("1"),
-      Keyword.In,
+      Keyword.InKw,
       Identifier("a"),
-      Plus,
+      PlusToken,
       Number("1")
     )
     val parserOut = JSParser().expression(tokens)
@@ -581,11 +574,11 @@ class NewParserTest extends munit.FunSuite:
    */
   test(s"parse_lambda") {
     val tokens = List(
-      Keyword.Fun,
+      Keyword.FunKw,
       Identifier("x"),
-      Arrow,
+      ArrowToken,
       Identifier("x"),
-      Plus,
+      PlusToken,
       Number("1")
     )
     val parserOut = JSParser().expression(tokens)
@@ -610,12 +603,12 @@ class NewParserTest extends munit.FunSuite:
    */
   test(s"parse_lambda_2") {
     val tokens = List(
-      Keyword.Fun,
+      Keyword.FunKw,
       Identifier("x"),
       Identifier("y"),
-      Arrow,
+      ArrowToken,
       Identifier("x"),
-      Plus,
+      PlusToken,
       Identifier("y")
     )
     val parserOut = JSParser().expression(tokens)
@@ -647,31 +640,31 @@ class NewParserTest extends munit.FunSuite:
    */
   test(s"parse_lambda_3") {
     val tokens = List(
-      Keyword.Let,
+      Keyword.LetKw,
       Identifier("a"),
-      Equal,
+      EqualToken,
       Number("1"),
-      Keyword.Let,
+      Keyword.LetKw,
       Identifier("b"),
-      Equal,
+      EqualToken,
       Number("2"),
-      Keyword.Let,
+      Keyword.LetKw,
       Identifier("sum"),
-      Equal,
-      Keyword.Fun,
+      EqualToken,
+      Keyword.FunKw,
       Identifier("x"),
       Identifier("y"),
-      Arrow,
+      ArrowToken,
       Identifier("x"),
-      Plus,
+      PlusToken,
       Identifier("y"),
-      Keyword.In,
+      Keyword.InKw,
       Identifier("sum"),
-      LeftParen,
+      LeftParenToken,
       Identifier("a"),
-      Comma,
+      CommaToken,
       Identifier("b"),
-      RightParen
+      RightParenToken
     )
     val parserOut = JSParser().expression(tokens)
 
@@ -722,33 +715,33 @@ class NewParserTest extends munit.FunSuite:
    */
   test(s"parse_recursive_function") {
     val tokens = List(
-      Keyword.Let,
-      Keyword.Rec,
+      Keyword.LetKw,
+      Keyword.RecKw,
       Identifier("fact"),
-      Equal,
-      Keyword.Fun,
+      EqualToken,
+      Keyword.FunKw,
       Identifier("x"),
-      Arrow,
-      Keyword.If,
+      ArrowToken,
+      Keyword.IfKw,
       Identifier("x"),
-      EqualEqual,
+      EqualEqualToken,
       Number("0"),
-      Keyword.Then,
+      Keyword.ThenKw,
       Number("1"),
-      Keyword.Else,
+      Keyword.ElseKw,
       Identifier("x"),
-      Star,
+      StarToken,
       Identifier("fact"),
-      LeftParen,
+      LeftParenToken,
       Identifier("x"),
-      Minus,
+      MinusToken,
       Number("1"),
-      RightParen,
-      Keyword.In,
+      RightParenToken,
+      Keyword.InKw,
       Identifier("fact"),
-      LeftParen,
+      LeftParenToken,
       Number("5"),
-      RightParen
+      RightParenToken
     )
     val parserOut = JSParser().expression(tokens)
 
@@ -799,15 +792,15 @@ class NewParserTest extends munit.FunSuite:
   // in a
   test(s"parse_tuple") {
     val tokens = List(
-      Keyword.Let,
+      Keyword.LetKw,
       Identifier("a"),
-      Equal,
-      LeftParen,
+      EqualToken,
+      LeftParenToken,
       Number("1"),
-      Comma,
+      CommaToken,
       Number("2"),
-      RightParen,
-      Keyword.In,
+      RightParenToken,
+      Keyword.InKw,
       Identifier("a")
     )
     val parserOut = JSParser().expression(tokens)
@@ -827,17 +820,17 @@ class NewParserTest extends munit.FunSuite:
   // in a
   test(s"parse_nested_tuple") {
     val tokens = List(
-      Keyword.Let,
+      Keyword.LetKw,
       Identifier("a"),
-      Equal,
-      LeftParen,
+      EqualToken,
+      LeftParenToken,
       Number("1"),
-      Comma,
+      CommaToken,
       Number("2"),
-      Comma,
+      CommaToken,
       Number("3"),
-      RightParen,
-      Keyword.In,
+      RightParenToken,
+      Keyword.InKw,
       Identifier("a")
     )
     val parserOut = JSParser().expression(tokens)
@@ -861,24 +854,24 @@ class NewParserTest extends munit.FunSuite:
   // test condition: if (4 > 5) and true then 1 else 2
   test(s"parse_condition") {
     val tokens = List(
-      Keyword.If,
-      LeftParen,
+      Keyword.IfKw,
+      LeftParenToken,
       Number("4"),
-      Greater,
+      GreaterToken,
       Number("5"),
-      RightParen,
-      Keyword.And,
-      Keyword.True,
-      Keyword.Then,
+      RightParenToken,
+      Keyword.AndKw,
+      Keyword.TrueKw,
+      Keyword.ThenKw,
       Number("1"),
-      Keyword.Else,
+      Keyword.ElseKw,
       Number("2")
     )
     val parserOut = JSParser().expression(tokens)
 
     val expected = Cond(
       Buildin(
-        Logical(
+        BuildinFn.Logical(
           BuildinFn.And,
           Buildin(
             BuildinFn.Comparison(

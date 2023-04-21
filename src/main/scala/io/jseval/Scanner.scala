@@ -18,19 +18,19 @@ object Scanner {
 
   // != | !
   val bangEqualOrBang: P[Operator] =
-    Operator.BangEqual.parse | Operator.Bang.parse
+    Operator.BangEqualToken.parse | Operator.BangToken.parse
 
   // == | =
   val equalEqualOrEqual: P[Operator] =
-    Operator.EqualEqual.parse | Operator.Equal.parse
+    Operator.EqualEqualToken.parse | Operator.EqualToken.parse
 
   // >= | >
   val greaterEqualOrGreater: P[Operator] =
-    Operator.GreaterEqual.parse | Operator.Greater.parse
+    Operator.GreaterEqualToken.parse | Operator.GreaterToken.parse
 
   // <= | <
   val lessEqualOrLess: P[Operator] =
-    Operator.LessEqual.parse | Operator.Less.parse
+    Operator.LessEqualToken.parse | Operator.LessToken.parse
 
   val keywords: List[P[Keyword]] = Keyword.values.map(_.parse).toList
 
@@ -72,19 +72,19 @@ object Scanner {
 
   val allTokens =
     keywords ++ List(
-      Operator.Arrow.parse,
-      Operator.LeftParen.parse,
-      Operator.RightParen.parse,
-      Operator.LeftBrace.parse,
-      Operator.RightBrace.parse,
-      Operator.LeftBracket.parse,
-      Operator.RightBracket.parse,
-      Operator.Comma.parse,
-      Operator.Dot.parse,
-      Operator.Minus.parse,
-      Operator.Plus.parse,
-      Operator.Semicolon.parse,
-      Operator.Star.parse,
+      Operator.ArrowToken.parse,
+      Operator.LeftParenToken.parse,
+      Operator.RightParenToken.parse,
+      Operator.LeftBraceToken.parse,
+      Operator.RightBraceToken.parse,
+      Operator.LeftBracketToken.parse,
+      Operator.RightBracketToken.parse,
+      Operator.CommaToken.parse,
+      Operator.DotToken.parse,
+      Operator.MinusToken.parse,
+      Operator.PlusToken.parse,
+      Operator.SemicolonToken.parse,
+      Operator.StarToken.parse,
       bangEqualOrBang,
       equalEqualOrEqual,
       greaterEqualOrGreater,
