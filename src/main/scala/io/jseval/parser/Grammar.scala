@@ -4,13 +4,28 @@ import cats._
 import cats.implicits._
 import io.jseval.CompilerError.{NoExpectedParser, NoExpectedInfixParser}
 import io.jseval.{CompilerError, Keyword, Literal, Operator, Token}
+import io.jseval.Expression.Expr
 
+trait BaseGrammar[T] {
+  
+    def mPrefixParsers[F[_]](
+        tokens: List[Token]
+    )(implicit a: MonadError[F, CompilerError]): F[PrefixParser[T]]
+  
+    def mInfixParser[F[_]](
+        tokens: List[Token]
+    )(implicit a: MonadError[F, CompilerError]): F[InfixParser[T]]
+  
+    def getPrecedence[F[_]](
+        tokens: List[Token]
+    )(implicit a: MonadError[F, CompilerError]): F[Precendence]
 
+}
 
-object Grammar {
+object Grammar extends BaseGrammar[Expr] {
   def mPrefixParsers[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, CompilerError]): F[PrefixExprParser] = {
+  )(implicit a: MonadError[F, CompilerError]): F[PrefixParser[Expr]] = {
 
     tokens match
       case Literal.Number(_) :: rest => LiteralParser.pure[F]
@@ -31,35 +46,9 @@ object Grammar {
       case _ => a.raiseError(NoExpectedParser(tokens))
   }
 
-  // def typePrefixParser[F[_]](
-  //     tokens: List[Token]
-  // )(implicit a: MonadError[F, CompilerError]): F[TypePrefixParser] = {
-
-  //   tokens match {
-  //     case Keyword.Unit :: rest    => DumpTypeParser.pure[F]
-  //     case Keyword.Int :: rest     => DumpTypeParser.pure[F]
-  //     case Keyword.Boolean :: rest => DumpTypeParser.pure[F]
-  //     case Keyword.String :: rest  => DumpTypeParser.pure[F]
-  //     case _                       => a.raiseError(NoExpectedParser(tokens))
-  //   }
-  // }
-
-  // def typeInfixParser[F[_]](
-  //     tokens: List[Token]
-  // )(implicit a: MonadError[F, CompilerError]): F[TypePrefixParser] = {
-
-  //   tokens match {
-  //     case Keyword.Unit :: rest    => DumpTypeParser.pure[F]
-  //     case Keyword.Int :: rest     => DumpTypeParser.pure[F]
-  //     case Keyword.Boolean :: rest => DumpTypeParser.pure[F]
-  //     case Keyword.String :: rest  => DumpTypeParser.pure[F]
-  //     case _                       => a.raiseError(NoExpectedParser(tokens))
-  //   }
-  // }
-
   def mInfixParser[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, CompilerError]): F[InfixExprParser] = {
+  )(implicit a: MonadError[F, CompilerError]): F[InfixParser[Expr]] = {
     tokens match
       case Keyword.OrKw :: rest          => OrInfixParser.pure[F]
       case Keyword.AndKw :: rest         => AndInfixParser.pure[F]

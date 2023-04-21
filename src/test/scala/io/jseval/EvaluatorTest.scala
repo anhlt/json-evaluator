@@ -13,7 +13,7 @@ import cats.data._
 import cats.effect._
 import cats.effect.implicits._
 import cats.implicits._
-import io.jseval.parser.JSParser
+import io.jseval.parser.ExpressionParser
 
 class EvaluatorTest extends munit.FunSuite:
 

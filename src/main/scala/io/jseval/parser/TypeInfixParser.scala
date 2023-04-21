@@ -12,8 +12,7 @@ trait TypeInfixParser {
   val precedence: TypePrecedence
 
   def parseType[F[_]](tokens: List[Token], leftType: Typ)(implicit
-      me: MonadError[F, CompilerError],
-      jpParser : JSParser
+      me: MonadError[F, CompilerError]
   ): F[(Typ, List[Token])] = ??? 
 }
 

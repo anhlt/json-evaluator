@@ -14,7 +14,7 @@ import io.jseval.TypModule.*
 import io.jseval.Expression.BuildinModule.BuildinFn.Arithmetic
 import io.jseval.Expression.BuildinModule.BuildinFn.Sub
 import io.jseval.Expression.BuildinModule.BuildinFn.Mul
-import io.jseval.parser.{JSParser, ParserOut, Precendence}
+import io.jseval.parser.{ExpressionParser, ParserOut, Precendence}
 
 class ParserTest extends munit.FunSuite:
 
@@ -35,7 +35,7 @@ class ParserTest extends munit.FunSuite:
     val ts = List(Literal.Number("42"))
     val expected = Expression.LiteralExpr(42)
 
-    assertEquals( JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(expected, Nil)))
+    assertEquals( ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(expected, Nil)))
 
   }
 
@@ -43,7 +43,7 @@ class ParserTest extends munit.FunSuite:
     val ts = List(Literal.Str("you rox!"))
     val want = LiteralExpr("you rox!")
 
-    assertEquals(JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
+    assertEquals(ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
 
   }
 
@@ -62,7 +62,7 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
+    assertEquals(ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
   }
 
   test("parse_factor") {
@@ -106,7 +106,7 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
+    assertEquals(ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
 
   }
 
@@ -147,7 +147,7 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
+    assertEquals(ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
 
   }
 
@@ -183,7 +183,7 @@ class ParserTest extends munit.FunSuite:
 
     val result = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- JSParser().parsePrecedence(Precendence.LOWEST, tokens)
+      bindExpr <- ExpressionParser.parsePrecedence(Precendence.LOWEST, tokens)
 
     } yield bindExpr
 
@@ -264,7 +264,7 @@ class ParserTest extends munit.FunSuite:
 
     val result = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- JSParser().parsePrecedence(Precendence.LOWEST, tokens)
+      bindExpr <- ExpressionParser.parsePrecedence(Precendence.LOWEST, tokens)
 
     } yield bindExpr
 
@@ -304,7 +304,7 @@ class ParserTest extends munit.FunSuite:
 
     val result = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- JSParser().parsePrecedence(Precendence.LOWEST, tokens)
+      bindExpr <- ExpressionParser.parsePrecedence(Precendence.LOWEST, tokens)
 
     } yield bindExpr
 
@@ -354,7 +354,7 @@ class ParserTest extends munit.FunSuite:
 
     val result = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- JSParser().parsePrecedence(Precendence.LOWEST, tokens)
+      bindExpr <- ExpressionParser.parsePrecedence(Precendence.LOWEST, tokens)
 
     } yield bindExpr
 

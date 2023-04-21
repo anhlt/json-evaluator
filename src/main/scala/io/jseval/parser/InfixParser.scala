@@ -13,8 +13,7 @@ trait InfixParser[T] {
   val precedence: Precendence
 
   def parse[F[_]](ts: List[Token], leftExpr: T)(implicit
-      a: MonadError[F, CompilerError],
-      jpParser: JSParser
+      a: MonadError[F, CompilerError]
   ): F[ParserResult[T]]
 }
 
@@ -23,11 +22,10 @@ trait InfixExprParser extends InfixParser[Expr] {
   val precedence: Precendence
 
   def parse[F[_]](ts: List[Token], leftExpr: Expr)(implicit
-      a: MonadError[F, CompilerError],
-      jpParser: JSParser
+      a: MonadError[F, CompilerError]
   ): F[ParserResult[Expr]] = {
     for {
-      rightExprAndRemaining <- jpParser.expression(ts, precedence = precedence)
+      rightExprAndRemaining <- ExpressionParser.expression(ts, precedence = precedence)
     } yield (ParserOut(
       parser(leftExpr, rightExprAndRemaining.expr),
       rightExprAndRemaining.rmn
