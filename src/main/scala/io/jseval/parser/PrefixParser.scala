@@ -46,12 +46,11 @@ case object LiteralParser extends PrefixParser {
 
 }
 
-
 /*
   IdentifierParser is the parser for identifier.
   - It could be simple variable
   - It could be function call caller(arg, *)
-*/
+ */
 case object IdentifierParser extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
@@ -98,7 +97,10 @@ case object IdentifierParser extends PrefixParser {
   ): F[ParserOut] = {
 
     for {
-      argAndRemaining <- jsParser.expression(tokens)
+      argAndRemaining <- jsParser.expression(
+        tokens,
+        precedence = Precendence.LOGICAL_OR
+      ) // could be conflix with tuple -> so we set precendece equal to nearest precedence which is OR
       nextResult <- (for {
         commaAndTokens <- consume(Operator.Comma, argAndRemaining.rmn)
         (comma, afterComma) = commaAndTokens

@@ -795,69 +795,69 @@ class NewParserTest extends munit.FunSuite:
     assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
 
-  // // Test tuple expression
-  // // Let a = (1, 2)
-  // // in a
-  // test(s"parse_tuple") {
-  //   val tokens = List(
-  //     Keyword.Let,
-  //     Identifier("a"),
-  //     Equal,
-  //     LeftParen,
-  //     Number("1"),
-  //     Comma,
-  //     Number("2"),
-  //     RightParen,
-  //     Keyword.In,
-  //     Identifier("a")
-  //   )
-  //   val parserOut = JSParser().expression(tokens)
+  // Test tuple expression
+  // Let a = (1, 2)
+  // in a
+  test(s"parse_tuple") {
+    val tokens = List(
+      Keyword.Let,
+      Identifier("a"),
+      Equal,
+      LeftParen,
+      Number("1"),
+      Comma,
+      Number("2"),
+      RightParen,
+      Keyword.In,
+      Identifier("a")
+    )
+    val parserOut = JSParser().expression(tokens)
 
-  //   val expected = Binding(
-  //     recursive = false,
-  //     Variable(tokenA),
-  //     TupleExpr(LiteralExpr(1), LiteralExpr(2)),
-  //     Variable(tokenA)
-  //   )
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenA),
+      TupleExpr(LiteralExpr(1), LiteralExpr(2)),
+      Variable(tokenA)
+    )
 
-  //   assertEquals(parserOut, Right(ParserOut(expected, List())))
-  // }
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
 
-  // // test nested tuple expression
-  // // Let a = (1, 2, 3)
-  // // in a
-  // test(s"parse_nested_tuple") {
-  //   val tokens = List(
-  //     Keyword.Let,
-  //     Identifier("a"),
-  //     Equal,
-  //     LeftParen,
-  //     Number("1"),
-  //     Comma,
-  //     Number("2"),
-  //     Comma,
-  //     Number("3"),
-  //     RightParen,
-  //     Keyword.In,
-  //     Identifier("a")
-  //   )
-  //   val parserOut = JSParser().expression(tokens)
+  // test nested tuple expression
+  // Let a = (1, 2, 3)
+  // in a
+  test(s"parse_nested_tuple") {
+    val tokens = List(
+      Keyword.Let,
+      Identifier("a"),
+      Equal,
+      LeftParen,
+      Number("1"),
+      Comma,
+      Number("2"),
+      Comma,
+      Number("3"),
+      RightParen,
+      Keyword.In,
+      Identifier("a")
+    )
+    val parserOut = JSParser().expression(tokens)
 
-  //   val expected = Binding(
-  //     recursive = false,
-  //     Variable(tokenA),
-  //     TupleExpr(
-  //       TupleExpr(
-  //         LiteralExpr(1),
-  //         LiteralExpr(2)
-  //       ),
-  //       LiteralExpr(3)
-  //     ),
-  //     Variable(tokenA)
-  //   )
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenA),
+      TupleExpr(
+        TupleExpr(
+          LiteralExpr(1),
+          LiteralExpr(2)
+        ),
+        LiteralExpr(3)
+      ),
+      Variable(tokenA)
+    )
 
-  //   assertEquals(parserOut, Right(ParserOut(expected, List())))
-  // }
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
 
   // test condition: if (4 > 5) and true then 1 else 2
   test(s"parse_condition") {
