@@ -175,7 +175,6 @@ object Expression {
   case class Buildin(fn: BuildinFn) extends Expr
   case class Cond(pred: Expr, trueBranch: Expr, falseBranch: Expr) extends Expr
 
-  case class Grouping(expr: Expr) extends Expr
   case class Binding(
       recursive: Boolean,
       variableName: Variable,

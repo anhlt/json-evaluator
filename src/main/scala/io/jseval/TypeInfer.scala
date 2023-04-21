@@ -146,11 +146,6 @@ object TypeInfer {
         } yield TBoolean
       }
 
-      case Grouping(op: Expr) =>
-        for {
-          x <- infer(op)
-        } yield x
-
       case Cond(pred, trueBranch, falseBranch) => {
         for {
           predType <- infer(pred)

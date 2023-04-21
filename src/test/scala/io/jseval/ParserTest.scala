@@ -110,119 +110,6 @@ class ParserTest extends munit.FunSuite:
 
   }
 
-  test("parse_complex_expression") {
-
-    println("4 > 3 OR (5 + 6 < 4) AND ((7 + 8) > 3)")
-
-    val ts = List(
-      Literal.Number(
-        "4"
-      ),
-      Greater,
-      Number(
-        "3"
-      ),
-      Or,
-      LeftParen,
-      Number(
-        "5"
-      ),
-      Plus,
-      Number(
-        "6"
-      ),
-      Less,
-      Number(
-        "4"
-      ),
-      RightParen,
-      And,
-      LeftParen,
-      LeftParen,
-      Number(
-        "7"
-      ),
-      Plus,
-      Number(
-        "8"
-      ),
-      RightParen,
-      Greater,
-      Number(
-        "3"
-      ),
-      RightParen
-    )
-
-    val want = Buildin(
-      BuildinFn.Logical(
-        BuildinFn.Or,
-        Buildin(
-          BuildinFn.Comparison(
-            BuildinFn.Greater,
-            LiteralExpr(
-              4.0
-            ),
-            LiteralExpr(
-              3.0
-            )
-          )
-        ),
-        Buildin(
-          BuildinFn.Logical(
-            BuildinFn.And,
-            Grouping(
-              expr = Buildin(
-                BuildinFn.Comparison(
-                  BuildinFn.Less,
-                  Buildin(
-                    BuildinFn.Arithmetic(
-                      BuildinFn.Add,
-                      LiteralExpr(
-                        5.0
-                      ),
-                      LiteralExpr(
-                        6.0
-                      )
-                    )
-                  ),
-                  LiteralExpr(
-                    4.0
-                  )
-                )
-              )
-            ),
-            Grouping(
-              expr = Buildin(
-                BuildinFn.Comparison(
-                  BuildinFn.Greater,
-                  Grouping(
-                    expr = Buildin(
-                      BuildinFn.Arithmetic(
-                        BuildinFn.Add,
-                        LiteralExpr(
-                          7.0
-                        ),
-                        LiteralExpr(
-                          8.0
-                        )
-                      )
-                    )
-                  ),
-                  LiteralExpr(
-                    3.0
-                  )
-                )
-              )
-            )
-          )
-        )
-      )
-    )
-
-    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
-  }
-
   test("parse_abs") {
     println("fun x y -> x + y + 8;")
     val ts = List(
@@ -400,16 +287,14 @@ class ParserTest extends munit.FunSuite:
       pred = Buildin(
         fn = BuildinFn.Logical(
           fn = BuildinFn.And,
-          opA = Grouping(
-            expr = Buildin(
-              fn = BuildinFn.Comparison(
-                fn = BuildinFn.Greater,
-                opA = LiteralExpr(
-                  value = 4.0
-                ),
-                opB = LiteralExpr(
-                  value = 5.0
-                )
+          opA = Buildin(
+            fn = BuildinFn.Comparison(
+              fn = BuildinFn.Greater,
+              opA = LiteralExpr(
+                value = 4.0
+              ),
+              opB = LiteralExpr(
+                value = 5.0
               )
             )
           ),

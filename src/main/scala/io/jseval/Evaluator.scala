@@ -133,12 +133,6 @@ object Evaluator {
         } yield LiteralValue(LogicalFn.apply(fn)(aAsDouble)(bAsDouble))
       }
 
-      case Grouping(op: Expr) =>
-        for {
-          x <- eval(op)
-          y <- Value.asDouble(x)
-        } yield LiteralValue(y)
-
       case Cond(pred, trueBranch, falseBranch) => {
         for {
           valPredExpr <- eval(pred)
