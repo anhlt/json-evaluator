@@ -174,6 +174,7 @@ object Expression {
   case class LiteralExpr(value: LiteralType) extends Expr
   case class Buildin(fn: BuildinFn) extends Expr
   case class Cond(pred: Expr, trueBranch: Expr, falseBranch: Expr) extends Expr
+  case class TupleExpr(leftExpr: Expr, rightExpr: Expr) extends Expr
 
   case class Binding(
       recursive: Boolean,
