@@ -12,7 +12,7 @@ import cats.implicits._
 import io.jseval.Expression.BuildinModule.BuildinFn
 import io.jseval.Expression.Buildin
 import io.jseval.Expression.Variable
-import io.jseval.Expression.Expr
+import io.jseval.Expression.{Expr, App}
 import java.security.Identity
 import io.jseval.Expression.Abs
 import io.jseval.TypModule.TAny
@@ -23,7 +23,6 @@ trait PrefixParser {
   def parse[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, CompilerError], JSParser: JSParser): F[ParserOut]
-
 
 }
 
@@ -47,6 +46,12 @@ case object LiteralParser extends PrefixParser {
 
 }
 
+
+/*
+  IdentifierParser is the parser for identifier.
+  - It could be simple variable
+  - It could be function call caller(arg, *)
+*/
 case object IdentifierParser extends PrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
@@ -54,8 +59,56 @@ case object IdentifierParser extends PrefixParser {
   ): F[ParserOut] = {
     tokens match
       case Literal.Identifier(name) :: rest =>
-        a.pure(ParserOut(Expression.Variable(Literal.Identifier(name)), rest))
+        val variableExpr = Expression.Variable(Literal.Identifier(name))
+        rest match {
+          case Operator.LeftParen :: tokensAfterLeft =>
+            app(
+              variableExpr,
+              rest
+            )
+          case _ => a.pure(ParserOut(variableExpr, rest))
+        }
+
       case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
+  }
+
+  def app[F[_]](
+      callerExpr: Expr,
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError],
+      jsParser: JSParser
+  ): F[ParserOut] = {
+
+    for {
+      leftParenAndRmn <- consume(Operator.LeftParen, tokens)
+      (_, rmnAfterLP) = leftParenAndRmn
+      argAndRemaining <- appArgs(callerExpr, rmnAfterLP)
+      rParenAndRmn <- consume(Operator.RightParen, argAndRemaining.rmn)
+    } yield ParserOut(argAndRemaining.expr, rParenAndRmn._2)
+
+  }
+
+  def appArgs[F[_]](
+      callerExpr: Expr,
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError],
+      jsParser: JSParser
+  ): F[ParserOut] = {
+
+    for {
+      argAndRemaining <- jsParser.expression(tokens)
+      nextResult <- (for {
+        commaAndTokens <- consume(Operator.Comma, argAndRemaining.rmn)
+        (comma, afterComma) = commaAndTokens
+        rs <- appArgs(App(callerExpr, argAndRemaining.expr), afterComma)
+      } yield (rs)).recover({ case CompilerError.ExpectToken(Operator.Comma) =>
+        ParserOut(App(callerExpr, argAndRemaining.expr), argAndRemaining.rmn)
+      })
+
+    } yield nextResult
+
   }
 }
 
@@ -220,7 +273,7 @@ case object LetBindingPrefixParser extends PrefixParser {
         for {
           parserOut <- letBinding(rest)
         } yield (parserOut)
-      case _ => 
+      case _ =>
         println("Let Parser tokens: " + tokens)
         a.raiseError(CompilerError.ExpectToken(Keyword.Let))
   }
@@ -240,7 +293,7 @@ case object LetBindingPrefixParser extends PrefixParser {
       variable <- asVariable(identiferAndRmn.expr)
       equalAndRmn <- consume(Operator.Equal, identiferAndRmn.rmn)
       exprAndRmn <- JSParser.expression(equalAndRmn._2)
-      _ = println("expr and rmn"+ exprAndRmn)
+      _ = println("expr and rmn" + exprAndRmn)
       result <- (for {
         rs <- in(exprAndRmn.rmn)
       } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.In) =>
@@ -252,7 +305,6 @@ case object LetBindingPrefixParser extends PrefixParser {
       result._2
     )
   }
-
 
   def rec[F[_]](
       tokens: List[Token]

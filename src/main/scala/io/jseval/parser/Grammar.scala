@@ -46,7 +46,7 @@ object Grammar {
         GreaterThanOrEqualInfixParser.pure[F]
       case Operator.LessEqual :: rest => LessThanOrEqualInfixParser.pure[F]
 
-      case Operator.Comma :: rest => TupleInfixParser.pure[F]
+      // case Operator.Comma :: rest => TupleInfixParser.pure[F]
       case _                      => a.raiseError(NoExpectedInfixParser(tokens))
   }
 
