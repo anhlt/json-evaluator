@@ -1,6 +1,5 @@
 package io.jseval
 
-import Parser.*
 import cats.*
 import cats.implicits.*
 import Expression.*
@@ -13,7 +12,7 @@ import Literal.*
 import io.jseval.Expression.BuildinModule.BuildinFn.Arithmetic
 import io.jseval.Expression.BuildinModule.BuildinFn.Sub
 import io.jseval.Expression.BuildinModule.BuildinFn.Mul
-import io.jseval.parser.{JSParser, Precendence}
+import io.jseval.parser.{JSParser, ParserOut, Precendence}
 import io.jseval.Expression.BuildinModule.BuildinFn.UnaryFn
 import io.jseval.TypModule.TAny
 import io.jseval.Expression.BuildinModule.BuildinFn.Logical

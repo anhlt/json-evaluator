@@ -7,9 +7,16 @@ enum Precendence(val code: Int) {
   case TERM extends Precendence(70) // + -
   case COMPARISON extends Precendence(50) // < > <= >=
   case EQUALITY extends Precendence(40) // == !=
-  case LOGICAL_AND extends Precendence(30) // AND 
+  case LOGICAL_AND extends Precendence(30) // AND
   case LOGICAL_OR extends Precendence(25) // OR
   case RECORD extends Precendence(20) // ,
-  case ASSIGNMENT extends Precendence(10) // = 
+  case ARROW extends Precendence(15) // -> 
+  case ASSIGNMENT extends Precendence(10) // =
   case LOWEST extends Precendence(0)
+}
+
+enum TypePrecedence(val code: Int) {
+  case PRODUCT extends TypePrecedence(20)
+  case ARROW extends TypePrecedence(10)
+  case LOWEST extends TypePrecedence(0)
 }

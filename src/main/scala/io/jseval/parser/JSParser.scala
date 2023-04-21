@@ -1,7 +1,7 @@
 package io.jseval.parser
 
 import cats.MonadError
-import io.jseval.Parser.ParserOut
+import io.jseval.parser.ParserOut
 import io.jseval.{Token, CompilerError}
 import cats.implicits._
 import io.jseval.parser.AndInfixParser.precedence
@@ -9,6 +9,7 @@ import io.jseval.Expression.{Expr, App}
 import cats.parse.Parser
 import io.jseval.parser.Utils._
 import io.jseval.Operator
+import io.jseval.TypModule._
 
 case class JSParser() {
 
@@ -19,10 +20,8 @@ case class JSParser() {
       a: MonadError[F, CompilerError]
   ): F[ParserOut] =
     parsePrecedence(precedence, tokens)
-    // app(tokens).orElse(parsePrecedence(precedence, tokens))
 
   implicit val jsParser: JSParser = this
-
 
   def parsePrecedence[F[_]](precedence: Precendence, tokens: List[Token])(
       implicit a: MonadError[F, CompilerError]
@@ -57,7 +56,7 @@ case class JSParser() {
           parserOut <-
             if (minPrecenden.code < opPrecedence.code) {
               for {
-                infixParser <- Grammar.mInfixParser(tokens)
+                infixParser: InfixExprParser <- Grammar.mInfixParser(tokens)
                 newLeft <- infixParser.parse(
                   rest,
                   left

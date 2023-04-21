@@ -1,7 +1,7 @@
 package io.jseval.parser
 
-import cats.MonadError
-import io.jseval.Parser.ParserOut
+import cats._
+import io.jseval.parser.{ParserOut, ParserResult}
 import io.jseval.Token
 import io.jseval.CompilerError
 import io.jseval.Literal
@@ -13,25 +13,28 @@ import io.jseval.Expression.BuildinModule.BuildinFn
 import io.jseval.Expression.Buildin
 import io.jseval.Expression.Variable
 import io.jseval.Expression.{Expr, App}
-import java.security.Identity
 import io.jseval.Expression.Abs
 import io.jseval.TypModule.TAny
 import io.jseval.Expression.Binding
 import io.jseval.parser.Utils._
 
-trait PrefixParser {
+trait PrefixParser[T] {
   def parse[F[_]](
       tokens: List[Token]
-  )(implicit a: MonadError[F, CompilerError], JSParser: JSParser): F[ParserOut]
-
+  )(implicit
+      a: MonadError[F, CompilerError],
+      JSParser: JSParser
+  ): F[ParserResult[T]]
 }
 
-case object LiteralParser extends PrefixParser {
+trait PrefixExprParser extends PrefixParser[Expr]
+
+case object LiteralParser extends PrefixExprParser {
 
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
     tokens match
       case Literal.Number(l) :: rest =>
         a.pure(ParserOut(Expression.LiteralExpr(l.toDouble), rest))
@@ -51,11 +54,11 @@ case object LiteralParser extends PrefixParser {
   - It could be simple variable
   - It could be function call caller(arg, *)
  */
-case object IdentifierParser extends PrefixParser {
+case object IdentifierParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
     tokens match
       case Literal.Identifier(name) :: rest =>
         val variableExpr = Expression.Variable(Literal.Identifier(name))
@@ -77,7 +80,7 @@ case object IdentifierParser extends PrefixParser {
   )(implicit
       me: MonadError[F, CompilerError],
       jsParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
 
     for {
       leftParenAndRmn <- consume(Operator.LeftParen, tokens)
@@ -94,7 +97,7 @@ case object IdentifierParser extends PrefixParser {
   )(implicit
       me: MonadError[F, CompilerError],
       jsParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
 
     for {
       argAndRemaining <- jsParser.expression(
@@ -114,11 +117,11 @@ case object IdentifierParser extends PrefixParser {
   }
 }
 
-case object UnaryPrefixParser extends PrefixParser {
+case object UnaryPrefixParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
     tokens match
       case Operator.Minus :: rest =>
         for {
@@ -138,11 +141,11 @@ case object UnaryPrefixParser extends PrefixParser {
   }
 }
 
-case object ParenthesisParser extends PrefixParser {
+case object ParenthesisParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
 
     tokens match
       case Operator.LeftParen :: rest =>
@@ -153,7 +156,7 @@ case object ParenthesisParser extends PrefixParser {
   def parenBody[F[_]](
       tokens: List[Token],
       JSParser: JSParser
-  )(implicit a: MonadError[F, CompilerError]): F[ParserOut] =
+  )(implicit a: MonadError[F, CompilerError]): F[ParserResult[Expr]] =
     for {
       parserOut <- JSParser.expression(tokens)
       rmn = parserOut.rmn
@@ -165,11 +168,11 @@ case object ParenthesisParser extends PrefixParser {
 
 }
 
-case object ConditionPrefixParser extends PrefixParser {
+case object ConditionPrefixParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
     tokens match
       case Keyword.If :: rest =>
         for {
@@ -208,11 +211,11 @@ object to parse function
   fun x y -> x + y
  */
 
-case object FunctionPrefixParser extends PrefixParser {
+case object FunctionPrefixParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
     tokens match
       case Keyword.Fun :: rest =>
         for {
@@ -226,7 +229,7 @@ case object FunctionPrefixParser extends PrefixParser {
   )(implicit
       me: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
 
     for {
       argAndRemaining <- IdentifierParser.parse(tokens)
@@ -246,7 +249,7 @@ case object FunctionPrefixParser extends PrefixParser {
   )(implicit
       me: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
     for {
       arrowAndRmn <- consume(Operator.Arrow, tokens)
       (arrow, rmn) = arrowAndRmn
@@ -265,11 +268,11 @@ case object for let binding
       |in sum(z, u)
 
  */
-case object LetBindingPrefixParser extends PrefixParser {
+case object LetBindingPrefixParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
     tokens match
       case Keyword.Let :: rest =>
         for {
@@ -296,15 +299,15 @@ case object LetBindingPrefixParser extends PrefixParser {
       equalAndRmn <- consume(Operator.Equal, identiferAndRmn.rmn)
       exprAndRmn <- JSParser.expression(equalAndRmn._2)
       _ = println("expr and rmn" + exprAndRmn)
-      result <- (for {
+      result: ParserResult[Expr] <- (for {
         rs <- in(exprAndRmn.rmn)
       } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.In) =>
         LetBindingPrefixParser.parse(exprAndRmn.rmn)
       })
 
     } yield ParserOut(
-      Binding(isRec, variable, exprAndRmn.expr, result._1),
-      result._2
+      Binding(isRec, variable, exprAndRmn.expr, result.expr),
+      result.rmn
     )
   }
 
@@ -323,7 +326,7 @@ case object LetBindingPrefixParser extends PrefixParser {
   )(implicit
       me: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = {
+  ): F[ParserResult[Expr]] = {
 
     for {
       inAndRmn <- consume(Keyword.In, tokens)
@@ -333,16 +336,16 @@ case object LetBindingPrefixParser extends PrefixParser {
   }
 }
 
-case object BracketPrefixParser extends PrefixParser {
+case object BracketPrefixParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = ???
+  ): F[ParserResult[Expr]] = ???
 }
 
-case object BracePrefixParser extends PrefixParser {
+case object BracePrefixParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
       a: MonadError[F, CompilerError],
       JSParser: JSParser
-  ): F[ParserOut] = ???
+  ): F[ParserResult[Expr]] = ???
 }

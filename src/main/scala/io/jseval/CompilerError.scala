@@ -1,5 +1,7 @@
 package io.jseval
 
+import io.jseval.TypModule.Typ
+
 enum CompilerError(msg: String):
   case NoExpectedParser(tokens: List[Token]) extends CompilerError(s"No expected parser for ${tokens.headOption}")
   case NoExpectedInfixParser(tokens: List[Token]) extends CompilerError(s"No expected parser for ${tokens.headOption}")
@@ -15,3 +17,8 @@ enum CompilerError(msg: String):
 
   case WrongType(v: Any, expectedType: String) extends CompilerError(expectedType)
   case UnboundedName(token: Token) extends CompilerError(s"UnboundedName $token")
+
+
+enum TypeError(msg: String) :
+  case WrongType(expectedType: Typ, found: Typ) extends TypeError(s"Expected $expectedType but found $found")
+

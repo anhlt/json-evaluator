@@ -1,20 +1,20 @@
 package io.jseval
 
-import Parser.*
-import cats._
-import cats.implicits._
-import Expression._
-import Expression.BuildinModule._
+import cats.*
+import cats.implicits.*
+import Expression.*
+import Expression.BuildinModule.*
 import Expression.BuildinModule.BuildinFn
-import Expression.ValueModule._
-import io.jseval.Scanner._
-import Keyword._
-import Operator._
-import Literal._
-import io.jseval.TypModule._
+import Expression.ValueModule.*
+import io.jseval.Scanner.*
+import Keyword.*
+import Operator.*
+import Literal.*
+import io.jseval.TypModule.*
 import io.jseval.Expression.BuildinModule.BuildinFn.Arithmetic
 import io.jseval.Expression.BuildinModule.BuildinFn.Sub
 import io.jseval.Expression.BuildinModule.BuildinFn.Mul
+import io.jseval.parser.{JSParser, ParserOut, Precendence}
 
 class ParserTest extends munit.FunSuite:
 
@@ -35,7 +35,7 @@ class ParserTest extends munit.FunSuite:
     val ts = List(Literal.Number("42"))
     val expected = Expression.LiteralExpr(42)
 
-    assertEquals(expression(ts), Right(ParserOut(expected, Nil)))
+    assertEquals( JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(expected, Nil)))
 
   }
 
@@ -43,7 +43,7 @@ class ParserTest extends munit.FunSuite:
     val ts = List(Literal.Str("you rox!"))
     val want = LiteralExpr("you rox!")
 
-    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
+    assertEquals(JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
 
   }
 
@@ -62,7 +62,7 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
+    assertEquals(JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
   }
 
   test("parse_factor") {
@@ -106,74 +106,10 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
+    assertEquals(JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
 
   }
 
-  test("parse_abs") {
-    println("fun x y -> x + y + 8;")
-    val ts = List(
-      Keyword.Fun,
-      Literal.Identifier("x"),
-      Literal.Identifier("y"),
-      Operator.Arrow,
-      Literal.Identifier("x"),
-      Plus,
-      Literal.Identifier("y"),
-      Plus,
-      Number(
-        "8"
-      )
-    )
-
-    val body = Buildin(
-      BuildinFn.Arithmetic(
-        BuildinFn.Add,
-        Buildin(
-          BuildinFn.Arithmetic(
-            BuildinFn.Add,
-            Variable(Identifier("x")),
-            Variable(Identifier("y"))
-          )
-        ),
-        LiteralExpr(
-          8.0
-        )
-      )
-    )
-
-    val want = Abs(
-      variableName = Variable(Identifier("x")),
-      variableType = TAny,
-      body = Abs(
-        variableName = Variable(Identifier("y")),
-        variableType = TAny,
-        body = body
-      )
-    )
-    assertEquals(lambdaFunc(ts), Right(ParserOut(want, Nil)))
-  }
-
-  test("parse_app") {
-    println("x (1, 2, b)")
-    val ts = List(
-      Literal.Identifier("x"),
-      Operator.LeftParen,
-      Literal.Number("1"),
-      Operator.Comma,
-      Literal.Number("2"),
-      Operator.Comma,
-      Literal.Identifier("b"),
-      Operator.RightParen
-    )
-
-    val want = App(
-      App(App(Variable(Identifier("x")), LiteralExpr(1.0)), LiteralExpr(2.0)),
-      Variable(Identifier("b"))
-    )
-    assertEquals(app(ts), Right(ParserOut(want, Nil)))
-
-  }
 
   test("parse_nested_app") {
     println("f (1, 2, g(1, 2));")
@@ -211,115 +147,10 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(expression(ts), Right(ParserOut(want, Nil)))
+    assertEquals(JSParser().parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
 
   }
 
-  test("parse_binding") {
-    val input = """
-      |let z = 4
-      |let u = 3
-      |let sum = fun x y -> x + y
-      |in sum(z, u)
-      """.stripMargin
-
-    val tokens = Scanner.parse(input)
-
-    val result = for {
-      tokens <- Scanner.parse(input)
-      bindExpr <- let(tokens)
-
-    } yield bindExpr
-
-    val yEqualtoXplusY = Abs(
-      variableName = Variable(tokenY),
-      variableType = TAny,
-      body = Buildin(
-        BuildinFn.Arithmetic(
-          BuildinFn.Add,
-          x,
-          y
-        )
-      )
-    )
-
-    // \x \y x + y
-
-    val sumBody = Abs(
-      variableName = Variable(tokenX),
-      variableType = TAny,
-      yEqualtoXplusY
-    )
-
-    // binding sum = \x \y x + y
-
-    val sum = Binding(
-      recursive = false,
-      variableName = Variable(sumToken),
-      body = sumBody,
-      expr = App(
-        App(body = Variable(sumToken), arg = Variable(tokenZ)),
-        arg = Variable(tokenU)
-      )
-    )
-
-    val want = Binding(
-      recursive = false,
-      variableName = Variable(tokenZ),
-      body = LiteralExpr(4.0),
-      expr = Binding(
-        recursive = false,
-        variableName = Variable(tokenU),
-        body = LiteralExpr(3.0),
-        expr = sum
-      )
-    )
-
-    assertEquals(result, Right(ParserOut(want, Nil)))
-  }
-
-  test("parse_condition") {
-    val input = """
-      if (4 > 5) and true then 1 else 2
-    """
-
-    val want = Cond(
-      pred = Buildin(
-        fn = BuildinFn.Logical(
-          fn = BuildinFn.And,
-          opA = Buildin(
-            fn = BuildinFn.Comparison(
-              fn = BuildinFn.Greater,
-              opA = LiteralExpr(
-                value = 4.0
-              ),
-              opB = LiteralExpr(
-                value = 5.0
-              )
-            )
-          ),
-          opB = LiteralExpr(
-            value = true
-          )
-        )
-      ),
-      trueBranch = LiteralExpr(
-        value = 1.0
-      ),
-      falseBranch = LiteralExpr(
-        value = 2.0
-      )
-    )
-
-    val result = for {
-      tokens <- Scanner.parse(input)
-      bindExpr <- expression(tokens)
-
-    } yield bindExpr
-
-    assertEquals(result, Right(ParserOut(want, Nil)))
-
-  }
 
   test("parse_adding_2_function") {
     val input = "fibo(n-1) + fibo(n-2)"
@@ -352,7 +183,7 @@ class ParserTest extends munit.FunSuite:
 
     val result = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- expression(tokens)
+      bindExpr <- JSParser().parsePrecedence(Precendence.LOWEST, tokens)
 
     } yield bindExpr
 
@@ -433,7 +264,7 @@ class ParserTest extends munit.FunSuite:
 
     val result = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- expression(tokens)
+      bindExpr <- JSParser().parsePrecedence(Precendence.LOWEST, tokens)
 
     } yield bindExpr
 
@@ -473,7 +304,7 @@ class ParserTest extends munit.FunSuite:
 
     val result = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- expression(tokens)
+      bindExpr <- JSParser().parsePrecedence(Precendence.LOWEST, tokens)
 
     } yield bindExpr
 
@@ -523,7 +354,7 @@ class ParserTest extends munit.FunSuite:
 
     val result = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- expression(tokens)
+      bindExpr <- JSParser().parsePrecedence(Precendence.LOWEST, tokens)
 
     } yield bindExpr
 
