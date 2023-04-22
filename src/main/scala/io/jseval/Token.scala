@@ -23,6 +23,7 @@ enum Operator(val lexeme: String) extends Token:
   case MinusToken extends Operator("-")
   case PlusToken extends Operator("+")
   case SemicolonToken extends Operator(";")
+  case ColonToken extends Operator(":")
   case SlashToken extends Operator("/")
   case StarToken extends Operator("*")
   case DollarToken extends Operator("$")

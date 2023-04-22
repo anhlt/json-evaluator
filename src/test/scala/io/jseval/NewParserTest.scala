@@ -9,7 +9,7 @@ import Keyword.*
 import Operator.*
 import Literal.*
 import io.jseval.parser.{ExpressionParser, ParserOut, Precendence}
-import io.jseval.TypModule.TAny
+import io.jseval.TypModule.*
 
 class NewParserTest extends munit.FunSuite:
 
@@ -375,7 +375,8 @@ class NewParserTest extends munit.FunSuite:
 
   // test NOT and parenthesis and OR operator (NOT (true OR false))
   test(s"parse_primary_boolean_not_or_parenthesis") {
-    val tokens = List(BangToken, LeftParenToken, TrueKw, OrKw, FalseKw, RightParenToken)
+    val tokens =
+      List(BangToken, LeftParenToken, TrueKw, OrKw, FalseKw, RightParenToken)
     val parserOut = ExpressionParser.expression(tokens)
 
     val expected = Buildin(
@@ -585,7 +586,7 @@ class NewParserTest extends munit.FunSuite:
 
     val expected = Abs(
       Variable(tokenX),
-      variableType = TAny,
+      variableType = None,
       body = Buildin(
         BuildinFn.Arithmetic(
           BuildinFn.Add,
@@ -615,10 +616,10 @@ class NewParserTest extends munit.FunSuite:
 
     val expected = Abs(
       Variable(tokenX),
-      variableType = TAny,
+      variableType = None,
       body = Abs(
         Variable(tokenY),
-        variableType = TAny,
+        variableType = None,
         body = Buildin(
           BuildinFn.Arithmetic(
             BuildinFn.Add,
@@ -681,10 +682,10 @@ class NewParserTest extends munit.FunSuite:
           Variable(tokenSum),
           Abs(
             Variable(tokenX),
-            variableType = TAny,
+            variableType = None,
             body = Abs(
               Variable(tokenY),
-              variableType = TAny,
+              variableType = None,
               body = Buildin(
                 BuildinFn.Arithmetic(
                   BuildinFn.Add,
@@ -750,7 +751,7 @@ class NewParserTest extends munit.FunSuite:
       Variable(tokenFact),
       Abs(
         Variable(tokenX),
-        variableType = TAny,
+        variableType = None,
         body = Cond(
           Buildin(
             BuildinFn.Comparison(
@@ -925,6 +926,69 @@ class NewParserTest extends munit.FunSuite:
         arg = LiteralExpr(
           value = 2.0
         )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  // test
+  // Let sum = fun (x: int) (y: int) -> x + y
+  // In sum (a , b)
+  test(s"parse_app_with_multiple_args_2") {
+    val tokens = List(
+      Keyword.LetKw,
+      Identifier("sum"),
+      EqualToken,
+      Keyword.FunKw,
+      LeftParenToken,
+      Identifier("x"),
+      ColonToken,
+      IntKw,
+      RightParenToken,
+      LeftParenToken,
+      Identifier("y"),
+      ColonToken,
+      IntKw,
+      RightParenToken,
+      ArrowToken,
+      Identifier("x"),
+      PlusToken,
+      Identifier("y"),
+      Keyword.InKw,
+      Identifier("sum"),
+      LeftParenToken,
+      Identifier("a"),
+      CommaToken,
+      Identifier("b"),
+      RightParenToken
+    )
+    val parserOut = ExpressionParser.expression(tokens)
+
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenSum),
+      Abs(
+        Variable(tokenX),
+        Some(TInt),
+        Abs(
+          Variable(tokenY),
+          Some(TInt),
+          Buildin(
+            BuildinFn.Arithmetic(
+              BuildinFn.Add,
+              Variable(tokenX),
+              Variable(tokenY)
+            )
+          )
+        )
+      ),
+      App(
+        App(
+          Variable(tokenSum),
+          Variable(tokenA)
+        ),
+        Variable(tokenB)
       )
     )
 

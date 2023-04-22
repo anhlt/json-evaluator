@@ -122,7 +122,7 @@ class TypeInferTest extends munit.FunSuite:
 
     val yEqualtoXplusY = Abs(
       variableName = Variable(tokenY),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
         BuildinFn.Arithmetic(
           BuildinFn.Add,
@@ -136,7 +136,7 @@ class TypeInferTest extends munit.FunSuite:
 
     val sumBody = Abs(
       variableName = Variable(tokenX),
-      variableType = TInt,
+      variableType = Some(TInt),
       yEqualtoXplusY
     )
 
@@ -178,7 +178,7 @@ class TypeInferTest extends munit.FunSuite:
 
     val yEqualtoXplusY = Abs(
       variableName = Variable(tokenY),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
         BuildinFn.Arithmetic(
           BuildinFn.Add,
@@ -192,7 +192,7 @@ class TypeInferTest extends munit.FunSuite:
 
     val sumBody = Abs(
       variableName = Variable(tokenX),
-      variableType = TInt,
+      variableType = Some(TInt),
       yEqualtoXplusY
     )
 

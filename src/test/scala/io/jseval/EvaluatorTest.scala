@@ -66,7 +66,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = Variable(token),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
         BuildinFn.Arithmetic(
           BuildinFn.Add,
@@ -97,10 +97,10 @@ class EvaluatorTest extends munit.FunSuite:
       val bodyExpr =
         Abs(
           variableName = Variable(tokenX),
-          variableType = TInt,
+          variableType = Some(TInt),
           Abs(
             variableName = Variable(tokenY),
-            variableType = TInt,
+            variableType = Some(TInt),
             body = Buildin(
               BuildinFn.Arithmetic(
                 BuildinFn.Add,
@@ -136,7 +136,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = Variable(tokenX),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
         BuildinFn.Arithmetic(
           BuildinFn.Add,
@@ -173,7 +173,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = Variable(tokenX),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
         BuildinFn.Arithmetic(
           BuildinFn.Add,
@@ -219,7 +219,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val yEqualtoXplusY = Abs(
       variableName = Variable(tokenY),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
         BuildinFn.Arithmetic(
           BuildinFn.Add,
@@ -233,7 +233,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val sumBody = Abs(
       variableName = Variable(tokenX),
-      variableType = TInt,
+      variableType = Some(TInt),
       yEqualtoXplusY
     )
 
@@ -301,10 +301,10 @@ class EvaluatorTest extends munit.FunSuite:
 
     val body = Abs(
       variableName = Variable(factorialName),
-      variableType = TAny,
+      variableType = None,
       body = Abs(
         variableName = Variable(tokenX),
-        variableType = TAny,
+        variableType = None,
         body = factExpr
       )
     )

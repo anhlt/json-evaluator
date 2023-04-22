@@ -311,7 +311,7 @@ class ParserTest extends munit.FunSuite:
 
     val want = Abs(
       variableName = Variable(tokenX),
-      variableType = TAny,
+      variableType = None,
       body = factExpr
     )
 
@@ -351,7 +351,7 @@ class ParserTest extends munit.FunSuite:
 
     val sumBody = Abs(
       variableName = Variable(tokenX),
-      variableType = TAny,
+      variableType = None,
       body = factExpr
     )
 

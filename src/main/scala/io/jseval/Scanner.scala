@@ -80,6 +80,7 @@ object Scanner {
       Operator.LeftBracketToken.parse,
       Operator.RightBracketToken.parse,
       Operator.CommaToken.parse,
+      Operator.ColonToken.parse,
       Operator.DotToken.parse,
       Operator.MinusToken.parse,
       Operator.PlusToken.parse,

@@ -104,6 +104,13 @@ object TypeInfer {
       expr: Expr
   )(implicit me: MonadError[F, TypeError.Error], env: TypeEnv): F[Typ] =
     expr match {
+
+      case TupleExpr(leftExpr, rightExpr) =>
+        for {
+          leftType <- infer(leftExpr)
+          rightType <- infer(rightExpr)
+        } yield TProduct(leftType, rightType)
+
       case LiteralExpr(v) => me.pure(Utils.asType(v))
       case Buildin(Arithmetic(fn, opA, opB)) => {
         for {
@@ -164,11 +171,11 @@ object TypeInfer {
       }
 
       case Abs(variable, variableType, body) => {
-        val newEnv = env + (variable.name -> variableType)
+        val newEnv = env + (variable.name -> variableType.getOrElse(TAny))
 
         infer(body)(me, newEnv).flatMap(bodyType =>
           me.pure(
-            TArrow(variableType, bodyType)
+            TArrow(variableType.getOrElse(TAny), bodyType)
           )
         )
 

@@ -17,6 +17,7 @@ import io.jseval.Expression.Abs
 import io.jseval.TypModule.TAny
 import io.jseval.Expression.Binding
 import io.jseval.parser.Utils._
+import io.jseval.TypModule.Typ
 
 trait PrefixParser[T] {
   def parse[F[_]](
@@ -71,6 +72,8 @@ case object IdentifierParser extends PrefixExprParser {
       case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
   }
 
+  // app is the parser for function call
+  // caller(arg, arg, arg)
   def app[F[_]](
       callerExpr: Expr,
       tokens: List[Token]
@@ -201,6 +204,7 @@ case object ConditionPrefixParser extends PrefixExprParser {
 object to parse function
   fun x -> if x == 0 then 1 else x * fact(x - 1)
   fun x y -> x + y
+  fun (x: Int) (y: Int) -> x + y
  */
 
 case object FunctionPrefixParser extends PrefixExprParser {
@@ -215,6 +219,39 @@ case object FunctionPrefixParser extends PrefixExprParser {
       case _ => a.raiseError(CompilerError.ExpectToken(Keyword.FunKw))
   }
 
+  /*
+  / parsing parameter part after fun keyword
+  / it could be either
+  / 1. variable with no type
+  / 2. variable with type
+   */
+  def parameter[F[_]](
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError]
+  ): F[(ParserResult[Expr], Option[Typ])] = {
+
+    tokens match {
+      case Operator.LeftParenToken :: rest => {
+        for {
+          argAndRmn <- IdentifierParser.parse(rest)
+          variable <- asVariable(argAndRmn.expr)
+          colonAndRmn <- consume(Operator.ColonToken, argAndRmn.rmn)
+          (colon, afterColon) = colonAndRmn
+          expectType <- TypeParser.parseType(afterColon)
+          rightParenAndRmn <- consume(Operator.RightParenToken, expectType.rmn)
+          (rightParen, afterRightParen) = rightParenAndRmn
+        } yield (ParserOut(variable, afterRightParen), Some(expectType.expr))
+      }
+      case _ => {
+        for {
+          argAndRmn <- IdentifierParser.parse(tokens)
+          variable <- asVariable(argAndRmn.expr)
+        } yield (ParserOut(variable, argAndRmn.rmn), None)
+      }
+    }
+  }
+
   def lambda[F[_]](
       tokens: List[Token]
   )(implicit
@@ -222,14 +259,18 @@ case object FunctionPrefixParser extends PrefixExprParser {
   ): F[ParserResult[Expr]] = {
 
     for {
-      argAndRemaining <- IdentifierParser.parse(tokens)
+      exprAndType <- parameter(tokens)
+      (argAndRemaining, expectType) = exprAndType
       variable <- asVariable(argAndRemaining.expr)
       bodyAndRmn <- lambda(argAndRemaining.rmn).recoverWith(_ =>
         lamdaBody(argAndRemaining.rmn)
       )
-
     } yield ParserOut(
-      Abs(variableName = variable, variableType = TAny, body = bodyAndRmn.expr),
+      Abs(
+        variableName = variable,
+        variableType = expectType,
+        body = bodyAndRmn.expr
+      ),
       bodyAndRmn.rmn
     )
   }

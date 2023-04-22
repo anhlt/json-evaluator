@@ -25,7 +25,7 @@ object Evaluator {
 
       val innerAbs = Abs(
         variableName = Variable(tX),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = App(
             body = Variable(tX),
@@ -39,7 +39,7 @@ object Evaluator {
 
       Abs(
         variableName = Variable(tFinal),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = innerAbs,
           arg = innerAbs
@@ -57,7 +57,7 @@ object Evaluator {
 
       val indirect = Abs(
         variableName = Variable(tV),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = App(
             body = Variable(tX),
@@ -69,7 +69,7 @@ object Evaluator {
 
       val innerAbs = Abs(
         variableName = Variable(tX),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = Variable(tFinal),
           arg = indirect
@@ -80,7 +80,7 @@ object Evaluator {
 
       Abs(
         variableName = Variable(tFinal),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = innerAbs,
           arg = innerAbs
@@ -93,8 +93,8 @@ object Evaluator {
   def eval[F[_]](
       expr: Expr
   )(implicit
-    me: MonadError[F, CompilerError], //
-    env: Env
+      me: MonadError[F, CompilerError], //
+      env: Env
   ): F[Value] =
     expr match {
       case LiteralExpr(v) => me.pure(LiteralValue(v))
@@ -178,7 +178,7 @@ object Evaluator {
           val fixRecusive = App(
             body = Utils.eagerFixPoint,
             arg =
-              Abs(variableName = variableName, variableType = TAny, body = body)
+              Abs(variableName = variableName, variableType = None, body = body)
           )
 
           for {

@@ -168,7 +168,7 @@ object Expression {
   sealed trait Expr
 
   case class Variable(name: Token) extends Expr
-  case class Abs(variableName: Variable, variableType: Typ, body: Expr)
+  case class Abs(variableName: Variable, variableType: Option[Typ], body: Expr)
       extends Expr
   case class App(body: Expr, arg: Expr) extends Expr
   case class LiteralExpr(value: LiteralType) extends Expr
