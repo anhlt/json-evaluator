@@ -8,29 +8,19 @@ import io.jseval.TypModule._
 import io.jseval.Keyword
 import cats._
 import cats.implicits._
+import io.jseval.CompilerError
 
-trait TypePrefixParser {
-  def parseType[F[_]](tokens: List[Token])(implicit
-      me: MonadError[F, TypeError]
-  ): F[Typ]
-}
-
-case object DumpTypeParser extends TypePrefixParser {
-  def parseType[F[_]](tokens: List[Token])(implicit
-      me: MonadError[F, TypeError]
-  ): F[Typ] = ???
-}
+trait TypePrefixParser extends PrefixParser[Typ]
 
 case object PrimaryParser extends TypePrefixParser {
-  def parseType[F[_]](tokens: List[Token])(implicit
-      me: MonadError[F, TypeError]
-  ): F[Typ] = {
+  def parse[F[_]](tokens: List[Token])(implicit
+      me: MonadError[F, CompilerError]
+  ): F[ParserResult[Typ]] = {
     tokens match {
-      case Keyword.Unit :: rest    => TUnit.pure[F]
-      case Keyword.IntKw :: rest     => TInt.pure[F]
-      case Keyword.BooleanKw :: rest => TBoolean.pure[F]
-      case Keyword.StringKw :: rest  => TString.pure[F]
+      case Keyword.Unit :: rest      => TypeParserResult(TUnit, rest).pure[F]
+      case Keyword.IntKw :: rest     => TypeParserResult(TInt, rest).pure[F]
+      case Keyword.BooleanKw :: rest => TypeParserResult(TBoolean, rest).pure[F]
+      case Keyword.StringKw :: rest  => TypeParserResult(TString, rest).pure[F]
     }
   }
 }
-

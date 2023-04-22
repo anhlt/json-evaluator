@@ -889,3 +889,44 @@ class NewParserTest extends munit.FunSuite:
 
     assertEquals(parserOut, Right(ParserOut(expected, List())))
   }
+
+  // test: f (1, 2, g(1, 2))
+  test(s"parse_app_with_multiple_args") {
+    val tokens = List(
+      Identifier("f"),
+      LeftParenToken,
+      Number("1"),
+      CommaToken,
+      Number("2"),
+      CommaToken,
+      Identifier("g"),
+      LeftParenToken,
+      Number("1"),
+      CommaToken,
+      Number("2"),
+      RightParenToken,
+      RightParenToken
+    )
+    val parserOut = ExpressionParser.expression(tokens)
+
+    val expected = App(
+      App(App(Variable(Identifier("f")), LiteralExpr(1.0)), LiteralExpr(2.0)),
+      App(
+        body = App(
+          body = Variable(
+            name = Identifier(
+              lexeme = "g"
+            )
+          ),
+          arg = LiteralExpr(
+            value = 1.0
+          )
+        ),
+        arg = LiteralExpr(
+          value = 2.0
+        )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }

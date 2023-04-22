@@ -14,9 +14,3 @@ enum Precendence(val code: Int) {
   case ASSIGNMENT extends Precendence(10) // =
   case LOWEST extends Precendence(0)
 }
-
-enum TypePrecedence(val code: Int) {
-  case PRODUCT extends TypePrecedence(20)
-  case ARROW extends TypePrecedence(10)
-  case LOWEST extends TypePrecedence(0)
-}

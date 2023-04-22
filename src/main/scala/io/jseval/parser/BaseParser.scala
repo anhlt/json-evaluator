@@ -31,7 +31,7 @@ trait BaseParser[T] {
           parserOut <-
             if (minPrecenden.code < opPrecedence.code) {
               for {
-                infixParser <- baseGrammar.mInfixParser(tokens)
+                infixParser <- baseGrammar.mInfixParsers(tokens)
                 newLeft <- infixParser.parse(
                   rest,
                   left

@@ -280,12 +280,10 @@ case object LetBindingPrefixParser extends PrefixExprParser {
     for {
       isRecursive <- rec(tokens)
       (isRec, afterRec) = isRecursive
-      _ = println("afterRec: " + afterRec)
       identiferAndRmn <- IdentifierParser.parse(afterRec)
       variable <- asVariable(identiferAndRmn.expr)
       equalAndRmn <- consume(Operator.EqualToken, identiferAndRmn.rmn)
       exprAndRmn <- ExpressionParser.expression(equalAndRmn._2)
-      _ = println("expr and rmn" + exprAndRmn)
       result: ParserResult[Expr] <- (for {
         rs <- in(exprAndRmn.rmn)
       } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.InKw) =>

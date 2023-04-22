@@ -12,7 +12,7 @@ trait BaseGrammar[T] {
         tokens: List[Token]
     )(implicit a: MonadError[F, CompilerError]): F[PrefixParser[T]]
   
-    def mInfixParser[F[_]](
+    def mInfixParsers[F[_]](
         tokens: List[Token]
     )(implicit a: MonadError[F, CompilerError]): F[InfixParser[T]]
   
@@ -46,7 +46,7 @@ object Grammar extends BaseGrammar[Expr] {
       case _ => a.raiseError(NoExpectedParser(tokens))
   }
 
-  def mInfixParser[F[_]](
+  def mInfixParsers[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, CompilerError]): F[InfixParser[Expr]] = {
     tokens match
@@ -72,7 +72,7 @@ object Grammar extends BaseGrammar[Expr] {
       tokens: List[Token]
   )(implicit a: MonadError[F, CompilerError]): F[Precendence] = {
     (for {
-      infix <- mInfixParser(tokens)
+      infix <- mInfixParsers(tokens)
     } yield infix.precedence).recoverWith({ case _ =>
       a.pure(Precendence.LOWEST)
     })

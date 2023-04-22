@@ -35,7 +35,10 @@ class ParserTest extends munit.FunSuite:
     val ts = List(Literal.Number("42"))
     val expected = Expression.LiteralExpr(42)
 
-    assertEquals( ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(expected, Nil)))
+    assertEquals(
+      ExpressionParser.parsePrecedence(Precendence.LOWEST, ts),
+      Right(ParserOut(expected, Nil))
+    )
 
   }
 
@@ -43,7 +46,10 @@ class ParserTest extends munit.FunSuite:
     val ts = List(Literal.Str("you rox!"))
     val want = LiteralExpr("you rox!")
 
-    assertEquals(ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
+    assertEquals(
+      ExpressionParser.parsePrecedence(Precendence.LOWEST, ts),
+      Right(ParserOut(want, Nil))
+    )
 
   }
 
@@ -62,7 +68,10 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
+    assertEquals(
+      ExpressionParser.parsePrecedence(Precendence.LOWEST, ts),
+      Right(ParserOut(want, Nil))
+    )
   }
 
   test("parse_factor") {
@@ -106,10 +115,12 @@ class ParserTest extends munit.FunSuite:
       )
     )
 
-    assertEquals(ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
+    assertEquals(
+      ExpressionParser.parsePrecedence(Precendence.LOWEST, ts),
+      Right(ParserOut(want, Nil))
+    )
 
   }
-
 
   test("parse_nested_app") {
     println("f (1, 2, g(1, 2));")
@@ -147,10 +158,12 @@ class ParserTest extends munit.FunSuite:
         )
       )
     )
-    assertEquals(ExpressionParser.parsePrecedence(Precendence.LOWEST, ts), Right(ParserOut(want, Nil)))
+    assertEquals(
+      ExpressionParser.parsePrecedence(Precendence.LOWEST, ts),
+      Right(ParserOut(want, Nil))
+    )
 
   }
-
 
   test("parse_adding_2_function") {
     val input = "fibo(n-1) + fibo(n-2)"
