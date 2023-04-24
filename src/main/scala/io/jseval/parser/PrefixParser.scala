@@ -292,8 +292,8 @@ case object FunctionPrefixParser extends PrefixExprParser {
 
 /*
 case object for let binding
-      |let z = 4
-      |let u = 3
+      |let z : int = 4
+      |let u : int = 3
       |let sum = fun x y -> x + y
       |in sum(z, u)
 
@@ -308,8 +308,34 @@ case object LetBindingPrefixParser extends PrefixExprParser {
           parserOut <- letBinding(rest)
         } yield (parserOut)
       case _ =>
-        println("Let Parser tokens: " + tokens)
         a.raiseError(CompilerError.ExpectToken(Keyword.LetKw))
+  }
+
+  /*
+  / parsing variable after let keyword
+  / it could be either
+  / 1. variable with no type
+  / 2. variable with type
+   */
+  def letVariable[F[_]](
+      tokens: List[Token]
+  )(implicit
+      me: MonadError[F, CompilerError]
+  ): F[(ParserResult[Expr], Option[Typ])] = {
+
+    (for {
+      argAndRmn <- IdentifierParser.parse(tokens)
+      colonAndRmn <- consume(Operator.ColonToken, argAndRmn.rmn)
+      (colon, afterColon) = colonAndRmn
+      expectedType <- TypeParser.parseType(afterColon)
+    } yield (
+      ParserOut(argAndRmn.expr, expectedType.rmn),
+      Some(expectedType.expr)
+    )).recoverWith({
+      case CompilerError.ExpectToken(Operator.ColonToken) => (
+        IdentifierParser.parse(tokens).map((_, None))
+      )
+    })
   }
 
   def letBinding[F[_]](
@@ -321,9 +347,10 @@ case object LetBindingPrefixParser extends PrefixExprParser {
     for {
       isRecursive <- rec(tokens)
       (isRec, afterRec) = isRecursive
-      identiferAndRmn <- IdentifierParser.parse(afterRec)
-      variable <- asVariable(identiferAndRmn.expr)
-      equalAndRmn <- consume(Operator.EqualToken, identiferAndRmn.rmn)
+      variableAndExpectedType <- letVariable(afterRec)
+      (variableExpr, expectedType) = variableAndExpectedType
+      variable <- asVariable(variableExpr.expr)
+      equalAndRmn <- consume(Operator.EqualToken, variableExpr.rmn)
       exprAndRmn <- ExpressionParser.expression(equalAndRmn._2)
       result: ParserResult[Expr] <- (for {
         rs <- in(exprAndRmn.rmn)
@@ -332,7 +359,13 @@ case object LetBindingPrefixParser extends PrefixExprParser {
       })
 
     } yield ParserOut(
-      Binding(isRec, variable, exprAndRmn.expr, result.expr),
+      Binding(
+        isRec,
+        variable,
+        variableType = expectedType,
+        exprAndRmn.expr,
+        result.expr,
+      ),
       result.rmn
     )
   }

@@ -208,6 +208,7 @@ object TypeInfer {
       case Binding(
             recursive: Boolean,
             variableName: Variable,
+            variableType: Option[Typ],
             body: Expr,
             expr: Expr
           ) =>

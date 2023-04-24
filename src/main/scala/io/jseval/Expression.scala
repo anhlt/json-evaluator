@@ -179,6 +179,7 @@ object Expression {
   case class Binding(
       recursive: Boolean,
       variableName: Variable,
+      variableType: Option[Typ] = None,
       body: Expr,
       expr: Expr
   ) extends Expr

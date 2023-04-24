@@ -556,6 +556,7 @@ class NewParserTest extends munit.FunSuite:
     val expected = Binding(
       recursive = false,
       Variable(tokenA),
+      variableType = None,
       LiteralExpr(1),
       Buildin(
         BuildinFn.Arithmetic(
@@ -672,14 +673,17 @@ class NewParserTest extends munit.FunSuite:
     val expected = Binding(
       recursive = false,
       Variable(tokenA),
+      variableType = None,
       LiteralExpr(1),
       Binding(
         recursive = false,
         Variable(tokenB),
+        variableType = None,
         LiteralExpr(2),
         Binding(
           recursive = false,
           Variable(tokenSum),
+          variableType = None,
           Abs(
             Variable(tokenX),
             variableType = None,
@@ -749,6 +753,7 @@ class NewParserTest extends munit.FunSuite:
     val expected = Binding(
       recursive = true,
       Variable(tokenFact),
+      variableType = None,
       Abs(
         Variable(tokenX),
         variableType = None,
@@ -809,6 +814,7 @@ class NewParserTest extends munit.FunSuite:
     val expected = Binding(
       recursive = false,
       Variable(tokenA),
+      variableType = None,
       TupleExpr(LiteralExpr(1), LiteralExpr(2)),
       Variable(tokenA)
     )
@@ -839,6 +845,7 @@ class NewParserTest extends munit.FunSuite:
     val expected = Binding(
       recursive = false,
       Variable(tokenA),
+      variableType = None,
       TupleExpr(
         TupleExpr(
           LiteralExpr(1),
@@ -968,6 +975,7 @@ class NewParserTest extends munit.FunSuite:
     val expected = Binding(
       recursive = false,
       Variable(tokenSum),
+      variableType = None,
       Abs(
         Variable(tokenX),
         Some(TInt),
@@ -989,6 +997,88 @@ class NewParserTest extends munit.FunSuite:
           Variable(tokenA)
         ),
         Variable(tokenB)
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  // test let parser
+  // |let z : int = 4
+  // |let u : string = 3
+  // |let sum = fun x y -> x + y
+  // |in sum(z, u)
+  test(s"parse_let") {
+    val tokens = List(
+      Keyword.LetKw,
+      Identifier("z"),
+      ColonToken,
+      IntKw,
+      EqualToken,
+      Number("4"),
+      Keyword.LetKw,
+      Identifier("u"),
+      ColonToken,
+      StringKw,
+      EqualToken,
+      Number("3"),
+      Keyword.LetKw,
+      Identifier("sum"),
+      EqualToken,
+      Keyword.FunKw,
+      Identifier("x"),
+      Identifier("y"),
+      ArrowToken,
+      Identifier("x"),
+      PlusToken,
+      Identifier("y"),
+      Keyword.InKw,
+      Identifier("sum"),
+      LeftParenToken,
+      Identifier("z"),
+      CommaToken,
+      Identifier("u"),
+      RightParenToken
+    )
+    val parserOut = ExpressionParser.expression(tokens)
+
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenZ),
+      variableType = Some(TInt),
+      LiteralExpr(4),
+      Binding(
+        recursive = false,
+        Variable(tokenU),
+        variableType = Some(TString),
+        LiteralExpr(3),
+        Binding(
+          recursive = false,
+          Variable(tokenSum),
+          variableType = None,
+          Abs(
+            Variable(tokenX),
+            None,
+            Abs(
+              Variable(tokenY),
+              None,
+              Buildin(
+                BuildinFn.Arithmetic(
+                  BuildinFn.Add,
+                  Variable(tokenX),
+                  Variable(tokenY)
+                )
+              )
+            )
+          ),
+          App(
+            App(
+              Variable(tokenSum),
+              Variable(tokenZ)
+            ),
+            Variable(tokenU)
+          )
+        )
       )
     )
 

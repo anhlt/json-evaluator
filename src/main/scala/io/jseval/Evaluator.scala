@@ -170,8 +170,9 @@ object Evaluator {
       case Binding(
             recursive: Boolean,
             variableName: Variable,
+            variableType: Option[Typ],
             body: Expr,
-            expr: Expr
+            expr: Expr,
           ) =>
         if (recursive) {
 
