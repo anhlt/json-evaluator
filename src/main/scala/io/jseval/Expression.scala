@@ -104,7 +104,7 @@ object Expression {
 
       case class Unary(fn: UnaryFn, opA: Expr) extends BuildinFn
 
-      case class Arthimetric(fn: ArthimetricFn, opA: Expr, opB: Expr)
+      case class Arithmetic(fn: ArthimetricFn, opA: Expr, opB: Expr)
           extends BuildinFn
 
       case class Comparison(fn: ComparisonFn, opA: Expr, opB: Expr)
@@ -122,10 +122,10 @@ object Expression {
 
       def asDouble[F[_]](
           value: Any
-      )(implicit a: MonadError[F, Error]): F[Double] = {
+      )(implicit a: MonadError[F, CompilerError]): F[Double] = {
         value match {
           case LiteralValue(v: Double) => a.pure(v)
-          case _ => a.raiseError(Error.WrongType(value, "Double"))
+          case _ => a.raiseError(CompilerError.WrongType(value, "Double"))
           // case _ => fr.raiseError(WrongType(value, "Double"))
 
         }
@@ -133,19 +133,19 @@ object Expression {
 
       def asBool[F[_]](
           value: Any
-      )(implicit a: MonadError[F, Error]): F[Boolean] = {
+      )(implicit a: MonadError[F, CompilerError]): F[Boolean] = {
         value match {
           case LiteralValue(v: Boolean) => a.pure(v)
-          case _ => a.raiseError(Error.WrongType(value, "Boolean"))
+          case _ => a.raiseError(CompilerError.WrongType(value, "Boolean"))
         }
       }
 
       def asClosure[F[_]](
           value: Any
-      )(implicit a: MonadError[F, Error]): F[Closure] = {
+      )(implicit a: MonadError[F, CompilerError]): F[Closure] = {
         value match {
           case v: Closure => a.pure(v)
-          case _          => a.raiseError(Error.WrongType(value, "Closure"))
+          case _          => a.raiseError(CompilerError.WrongType(value, "Closure"))
         }
       }
     }
@@ -168,17 +168,18 @@ object Expression {
   sealed trait Expr
 
   case class Variable(name: Token) extends Expr
-  case class Abs(variableName: Variable, variableType: Typ, body: Expr)
+  case class Abs(variableName: Variable, variableType: Option[Typ], body: Expr)
       extends Expr
   case class App(body: Expr, arg: Expr) extends Expr
   case class LiteralExpr(value: LiteralType) extends Expr
   case class Buildin(fn: BuildinFn) extends Expr
   case class Cond(pred: Expr, trueBranch: Expr, falseBranch: Expr) extends Expr
+  case class TupleExpr(leftExpr: Expr, rightExpr: Expr) extends Expr
 
-  case class Grouping(expr: Expr) extends Expr
   case class Binding(
       recursive: Boolean,
       variableName: Variable,
+      variableType: Option[Typ] = None,
       body: Expr,
       expr: Expr
   ) extends Expr

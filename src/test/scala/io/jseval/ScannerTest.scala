@@ -16,8 +16,33 @@ class ScannerTest extends munit.FunSuite {
     assertEquals(Scanner.whitespaces.parseAll(""), Right(()))
   }
 
+  test("Scanner: List") {
+    val str =
+      """
+        |[1, 2, 3, 4]
+        |""".stripMargin
+
+    val expected: Either[Scanner.Error, List[Token]] = (
+      List(
+        Operator.LeftBracketToken,
+        Literal.Number("1"),
+        CommaToken,
+        Literal.Number("2"),
+        CommaToken,
+        Literal.Number("3"),
+        CommaToken,
+        Literal.Number("4"),
+        Operator.RightBracketToken
+      )
+      ).asRight
+
+    assertEquals(Scanner.parse(str), expected)
+
+  }
+
   test("logic ") {
-    val str = """
+    val str =
+      """
   	4 > 3 or (5 + 6 < 4) and ((7 + 8) > 3)
 
   	""".stripMargin
@@ -27,42 +52,42 @@ class ScannerTest extends munit.FunSuite {
         Literal.Number(
           "4"
         ),
-        Greater,
+        GreaterToken,
         Number(
           "3"
         ),
-        Or,
-        LeftParen,
+        OrKw,
+        LeftParenToken,
         Number(
           "5"
         ),
-        Plus,
+        PlusToken,
         Number(
           "6"
         ),
-        Less,
+        LessToken,
         Number(
           "4"
         ),
-        RightParen,
-        And,
-        LeftParen,
-        LeftParen,
+        RightParenToken,
+        AndKw,
+        LeftParenToken,
+        LeftParenToken,
         Number(
           "7"
         ),
-        Plus,
+        PlusToken,
         Number(
           "8"
         ),
-        RightParen,
-        Greater,
+        RightParenToken,
+        GreaterToken,
         Number(
           "3"
         ),
-        RightParen
+        RightParenToken
       )
-    ).asRight
+      ).asRight
 
     assertEquals(Scanner.parse(str), expected)
 

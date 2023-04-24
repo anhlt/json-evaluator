@@ -1,6 +1,5 @@
 package io.jseval
 
-import cats.implicits._
 import munit.CatsEffectSuite
 import Expression as Expr
 import Expression._
@@ -13,11 +12,13 @@ import io.jseval.{Token, Literal}
 import cats.data._
 import cats.effect._
 import cats.effect.implicits._
+import cats.implicits._
+import io.jseval.parser.ExpressionParser
 
 class EvaluatorTest extends munit.FunSuite:
 
   // type MyEither[A] = EitherT[IO, Error, A]
-  type MyEither[A] = Either[Error, A]
+  type MyEither[A] = Either[CompilerError, A]
 
   val tokenX = Literal.Identifier("x")
   val tokenY = Literal.Identifier("y")
@@ -39,7 +40,7 @@ class EvaluatorTest extends munit.FunSuite:
   test("evaluate_simple_expression") {
 
     val expr = Buildin(
-      BuildinFn.Arthimetric(
+      BuildinFn.Arithmetic(
         BuildinFn.Add,
         Expr.LiteralExpr(
           2.0
@@ -51,7 +52,6 @@ class EvaluatorTest extends munit.FunSuite:
     )
 
     val result = ExprEval.eval[MyEither](expr)
-
 
     assertEquals(result, Right(LiteralValue(5.0)))
 
@@ -66,9 +66,9 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = Variable(token),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           variable,
           Expr.LiteralExpr(
@@ -97,12 +97,12 @@ class EvaluatorTest extends munit.FunSuite:
       val bodyExpr =
         Abs(
           variableName = Variable(tokenX),
-          variableType = TInt,
+          variableType = Some(TInt),
           Abs(
             variableName = Variable(tokenY),
-            variableType = TInt,
+            variableType = Some(TInt),
             body = Buildin(
-              BuildinFn.Arthimetric(
+              BuildinFn.Arithmetic(
                 BuildinFn.Add,
                 x,
                 y
@@ -136,9 +136,9 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = Variable(tokenX),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           Expr.LiteralExpr(
@@ -173,9 +173,9 @@ class EvaluatorTest extends munit.FunSuite:
 
     val bodyExpr = Abs(
       variableName = Variable(tokenX),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           Expr.LiteralExpr(
@@ -219,9 +219,9 @@ class EvaluatorTest extends munit.FunSuite:
 
     val yEqualtoXplusY = Abs(
       variableName = Variable(tokenY),
-      variableType = TInt,
+      variableType = Some(TInt),
       body = Buildin(
-        BuildinFn.Arthimetric(
+        BuildinFn.Arithmetic(
           BuildinFn.Add,
           x,
           y
@@ -233,7 +233,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     val sumBody = Abs(
       variableName = Variable(tokenX),
-      variableType = TInt,
+      variableType = Some(TInt),
       yEqualtoXplusY
     )
 
@@ -275,13 +275,13 @@ class EvaluatorTest extends munit.FunSuite:
     // x - 1
 
     val xMinus1 = Buildin(
-      Arthimetric(Sub, x, LiteralExpr(1))
+      Arithmetic(Sub, x, LiteralExpr(1))
     )
 
     // x * factorial(x-1)
 
     val falseBranch = Buildin(
-      Arthimetric(Mul, x, App(body = factorialVariable, arg = xMinus1))
+      Arithmetic(Mul, x, App(body = factorialVariable, arg = xMinus1))
     )
 
     // x == 0
@@ -301,10 +301,10 @@ class EvaluatorTest extends munit.FunSuite:
 
     val body = Abs(
       variableName = Variable(factorialName),
-      variableType = TAny,
+      variableType = None,
       body = Abs(
         variableName = Variable(tokenX),
-        variableType = TAny,
+        variableType = None,
         body = factExpr
       )
     )
@@ -328,24 +328,24 @@ class EvaluatorTest extends munit.FunSuite:
 
   }
 
-
-    test("evaluate_complex_input") {
+  test("evaluate_complex_input") {
 
     val input = """
-    |let mul = fun x y -> x * y
-    |let sum = fun x y -> x + y
-    |let x = 5
-    |let y = 6
-    |in sum(12, mul(x, y))
-    """.stripMargin
+   |let mul = fun x y -> x * y
+   |let sum = fun x y -> x + y
+   |let x = 5
+   |let y = 6
+   |in sum(12, mul(x, y))
+   """.stripMargin
 
     val parserResult = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- Parser.expression(tokens)
+      bindExpr <- ExpressionParser.expression(tokens)
+      value <- ExprEval.eval(bindExpr.expr)
 
     } yield bindExpr
 
-    val a = parserResult.map(_._1).getOrElse(LiteralExpr(5))
+    val a = parserResult.map(_.expr).getOrElse(LiteralExpr(5))
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](a)
 
@@ -356,43 +356,57 @@ class EvaluatorTest extends munit.FunSuite:
   test("evaluate_rec_binding") {
 
     val input = """
-    |let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
-    |in fact(5)
-    """.stripMargin
+   |let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+   |in fact(5)
+   """.stripMargin
 
     val parserResult = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- Parser.expression(tokens)
+      bindExpr <- ExpressionParser.expression(tokens)
+      value <- ExprEval.eval(bindExpr.expr)
 
-    } yield bindExpr
+    } yield value
 
-    val a = parserResult.map(_._1).getOrElse(LiteralExpr(5))
-
-    val result: MyEither[Value] = ExprEval.eval[MyEither](a)
-
-    assertEquals(result, Right(LiteralValue(120)))
+    assertEquals(parserResult, Right(LiteralValue(120)))
 
   }
 
   test("evaluate_rec_fibonacy") {
 
-
-
     val input = """
-    |let rec fibo = fun n -> if n <= 0 then 0 else if n == 1 then 1 else fibo(n-1) + fibo(n-2)
-    |in fibo(10)
-    """.stripMargin
+   |let rec fibo = fun n -> if n <= 0 then 0 else if n == 1 then 1 else fibo(n-1) + fibo(n-2)
+   |in fibo(10)
+   """.stripMargin
 
     val parserResult = for {
       tokens <- Scanner.parse(input)
-      bindExpr <- Parser.expression(tokens)
+      bindExpr <- ExpressionParser.expression(tokens)
+      value <- ExprEval.eval(bindExpr.expr)
 
-    } yield bindExpr
+    } yield value
 
-    val a = parserResult.map(_._1).getOrElse(LiteralExpr(5))
+    assertEquals(parserResult, Right(LiteralValue(55)))
 
-    val result: MyEither[Value] = ExprEval.eval[MyEither](a)
+  }
 
-    assertEquals(result, Right(LiteralValue(55)))
+  test("evaluate_complex_input_2") {
+
+    val input = """
+   |let mul = fun x y -> x * y
+   |let sum = fun x y -> x + y
+   |let x = 5
+   |let y = 6
+   |let z = mul(4)
+   |in sum(12, mul(x, y)) + z(3)
+   """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- ExpressionParser.expression(tokens)
+      value <- ExprEval.eval(bindExpr.expr)
+
+    } yield value 
+
+    assertEquals(parserResult, Right(LiteralValue(54)))
 
   }
