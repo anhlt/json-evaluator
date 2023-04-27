@@ -4,6 +4,9 @@
     "ghcr.io/ebaskoro/devcontainer-features/scala:1": {
       "version" : "latest",
       "installSbt" : true
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version" : "17" 
     }
   }
 }
