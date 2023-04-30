@@ -24,15 +24,15 @@ class ScannerTest extends munit.FunSuite {
 
     val expected: Either[Scanner.Error, List[Token]] = (
       List(
-        Operator.LeftBracket,
+        Operator.LeftBracketToken,
         Literal.Number("1"),
-        Comma,
+        CommaToken,
         Literal.Number("2"),
-        Comma,
+        CommaToken,
         Literal.Number("3"),
-        Comma,
+        CommaToken,
         Literal.Number("4"),
-        Operator.RightBracket
+        Operator.RightBracketToken
       )
       ).asRight
 
@@ -52,40 +52,40 @@ class ScannerTest extends munit.FunSuite {
         Literal.Number(
           "4"
         ),
-        Greater,
+        GreaterToken,
         Number(
           "3"
         ),
-        Or,
-        LeftParen,
+        OrKw,
+        LeftParenToken,
         Number(
           "5"
         ),
-        Plus,
+        PlusToken,
         Number(
           "6"
         ),
-        Less,
+        LessToken,
         Number(
           "4"
         ),
-        RightParen,
-        And,
-        LeftParen,
-        LeftParen,
+        RightParenToken,
+        AndKw,
+        LeftParenToken,
+        LeftParenToken,
         Number(
           "7"
         ),
-        Plus,
+        PlusToken,
         Number(
           "8"
         ),
-        RightParen,
-        Greater,
+        RightParenToken,
+        GreaterToken,
         Number(
           "3"
         ),
-        RightParen
+        RightParenToken
       )
       ).asRight
 

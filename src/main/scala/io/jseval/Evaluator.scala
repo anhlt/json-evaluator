@@ -25,7 +25,7 @@ object Evaluator {
 
       val innerAbs = Abs(
         variableName = Variable(tX),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = App(
             body = Variable(tX),
@@ -39,7 +39,7 @@ object Evaluator {
 
       Abs(
         variableName = Variable(tFinal),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = innerAbs,
           arg = innerAbs
@@ -57,7 +57,7 @@ object Evaluator {
 
       val indirect = Abs(
         variableName = Variable(tV),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = App(
             body = Variable(tX),
@@ -69,7 +69,7 @@ object Evaluator {
 
       val innerAbs = Abs(
         variableName = Variable(tX),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = Variable(tFinal),
           arg = indirect
@@ -80,7 +80,7 @@ object Evaluator {
 
       Abs(
         variableName = Variable(tFinal),
-        variableType = TAny,
+        variableType = None,
         body = App(
           body = innerAbs,
           arg = innerAbs
@@ -93,12 +93,12 @@ object Evaluator {
   def eval[F[_]](
       expr: Expr
   )(implicit
-      me: MonadError[F, Error], //
+      me: MonadError[F, CompilerError], //
       env: Env
   ): F[Value] =
     expr match {
       case LiteralExpr(v) => me.pure(LiteralValue(v))
-      case Buildin(Arthimetric(fn, opA, opB)) => {
+      case Buildin(Arithmetic(fn, opA, opB)) => {
         for {
           aAsValue <- eval(opA)
           aAsDouble <- Value.asDouble(aAsValue)
@@ -133,12 +133,6 @@ object Evaluator {
         } yield LiteralValue(LogicalFn.apply(fn)(aAsDouble)(bAsDouble))
       }
 
-      case Grouping(op: Expr) =>
-        for {
-          x <- eval(op)
-          y <- Value.asDouble(x)
-        } yield LiteralValue(y)
-
       case Cond(pred, trueBranch, falseBranch) => {
         for {
           valPredExpr <- eval(pred)
@@ -151,7 +145,7 @@ object Evaluator {
       case variable @ Variable(token) =>
         env.get(token) match {
           case Some(v) => me.pure(v)
-          case None    => me.raiseError(Error.UnboundedName(token))
+          case None    => me.raiseError(CompilerError.UnboundedName(token))
         }
 
       case App(bodyExpr, arg) => {
@@ -176,15 +170,16 @@ object Evaluator {
       case Binding(
             recursive: Boolean,
             variableName: Variable,
+            variableType: Option[Typ],
             body: Expr,
-            expr: Expr
+            expr: Expr,
           ) =>
         if (recursive) {
 
           val fixRecusive = App(
             body = Utils.eagerFixPoint,
             arg =
-              Abs(variableName = variableName, variableType = TAny, body = body)
+              Abs(variableName = variableName, variableType = None, body = body)
           )
 
           for {
