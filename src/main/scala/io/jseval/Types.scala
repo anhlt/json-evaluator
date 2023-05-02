@@ -11,6 +11,7 @@ object TypModule {
   sealed trait BaseTyp extends Typ
 
   case object TInt extends BaseTyp
+  case object TDouble extends BaseTyp
   case object TString extends BaseTyp
   case object TBoolean extends BaseTyp
 

@@ -104,7 +104,7 @@ object Evaluator {
           aAsDouble <- Value.asDouble(aAsValue)
           bAsValue <- eval(opB)
           bAsDouble <- Value.asDouble(bAsValue)
-        } yield LiteralValue(ArthimetricFn.apply(fn)(aAsDouble)(bAsDouble))
+        } yield LiteralValue(ArithmeticFn.apply(fn)(aAsDouble)(bAsDouble))
       }
 
       case Buildin(Comparison(fn, opA, opB)) => {

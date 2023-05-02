@@ -48,8 +48,8 @@ object Expression {
         }
       }
 
-      object ArthimetricFn {
-        def apply(fn: ArthimetricFn)(a: Double)(b: Double): Double = {
+      object ArithmeticFn {
+        def apply(fn: ArithmeticFn)(a: Double)(b: Double): Double = {
           fn match {
             case Add => a + b
             case Sub => a - b
@@ -59,12 +59,12 @@ object Expression {
         }
       }
 
-      sealed trait ArthimetricFn
+      sealed trait ArithmeticFn
 
-      case object Add extends ArthimetricFn
-      case object Sub extends ArthimetricFn
-      case object Mul extends ArthimetricFn
-      case object Div extends ArthimetricFn
+      case object Add extends ArithmeticFn
+      case object Sub extends ArithmeticFn
+      case object Mul extends ArithmeticFn
+      case object Div extends ArithmeticFn
 
       sealed trait ComparisonFn
 
@@ -104,7 +104,7 @@ object Expression {
 
       case class Unary(fn: UnaryFn, opA: Expr) extends BuildinFn
 
-      case class Arithmetic(fn: ArthimetricFn, opA: Expr, opB: Expr)
+      case class Arithmetic(fn: ArithmeticFn, opA: Expr, opB: Expr)
           extends BuildinFn
 
       case class Comparison(fn: ComparisonFn, opA: Expr, opB: Expr)
