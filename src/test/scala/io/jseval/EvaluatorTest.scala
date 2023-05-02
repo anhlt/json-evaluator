@@ -142,7 +142,7 @@ class EvaluatorTest extends munit.FunSuite:
           BuildinFn.Add,
           x,
           Expr.LiteralExpr(
-            3
+            3.0
           )
         )
       )
@@ -160,8 +160,8 @@ class EvaluatorTest extends munit.FunSuite:
       )
     )
 
-    val result: MyEither[Value] = ExprEval.eval[MyEither](inc3(1.0))
-    assertEquals(result, Right(LiteralValue(4.0)))
+    val result: MyEither[Value] = ExprEval.eval[MyEither](inc3(1))
+    assertEquals(result, Right(LiteralValue(4)))
 
   }
 
@@ -275,7 +275,7 @@ class EvaluatorTest extends munit.FunSuite:
     // x - 1
 
     val xMinus1 = Buildin(
-      Arithmetic(Sub, x, LiteralExpr(1))
+      Arithmetic(Sub, x, LiteralExpr(1.0))
     )
 
     // x * factorial(x-1)
@@ -286,14 +286,14 @@ class EvaluatorTest extends munit.FunSuite:
 
     // x == 0
     val comparision = Buildin(
-      Comparison(Equal, x, LiteralExpr(0))
+      Comparison(Equal, x, LiteralExpr(0.0))
     )
 
     // 1 if x == 0 else x * factorial(x - 1)
 
     val factExpr = Cond(
       pred = comparision,
-      trueBranch = LiteralExpr(1),
+      trueBranch = LiteralExpr(1.0),
       falseBranch = falseBranch
     )
 
@@ -319,7 +319,7 @@ class EvaluatorTest extends munit.FunSuite:
       body = facApp,
       expr = App(
         body = factorialVariable, //
-        arg = LiteralExpr(5)
+        arg = LiteralExpr(5.0)
       )
     )
 

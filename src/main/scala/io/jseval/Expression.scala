@@ -5,11 +5,12 @@ import cats.implicits._
 import TypModule._
 
 
-type LiteralType = Double | Boolean | String
+type LiteralType = Double | Boolean | String | Int
 object LiteralType {
   implicit def asType(v: LiteralType): Typ = {
     v match {
-      case x: Double  => TInt
+      case x: Double  => TDouble
+      case _: Int => TInt
       case _: String  => TString
       case _: Boolean => TBoolean
     }

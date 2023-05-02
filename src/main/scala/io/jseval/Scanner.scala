@@ -47,6 +47,17 @@ object Scanner {
 
   // valid numbers: 1234 or 12.43
   // invalid numbers: .1234 or 1234.
+
+  val intNumber: P[Literal] = N.digits.string.map(Literal.Number(_))
+
+  val floatNumber: P[Literal] = {
+    val fraction = (P.char('.') *> N.digits).string
+    (N.digits ~ fraction).string.map(Literal.FloatNumber(_))
+  }
+
+
+
+
   val number: P[Literal] = {
     val fraction = (P.char('.') *> N.digits).string.backtrack
     (N.digits ~ fraction.?).string.map(Literal.Number(_))
@@ -93,7 +104,8 @@ object Scanner {
       comments,
       identifier,
       str,
-      number
+      intNumber,
+      floatNumber
     )
 
   val token: P[Token] = P.oneOf(allTokens).surroundedBy(whitespaces)

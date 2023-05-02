@@ -55,7 +55,8 @@ object TypeInfer {
 
     def asType(v: LiteralType): Typ = {
       v match {
-        case x: Double  => TInt
+        case x: Double  => TDouble
+        case x: Int => TInt
         case _: String  => TString
         case _: Boolean => TBoolean
       }
