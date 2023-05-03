@@ -18,13 +18,19 @@ class ScannerTest extends munit.FunSuite {
 
   test("float_number") {
     val str = "123.456"
-    assertEquals(Scanner.floatNumber.parseAll(str), Right(FloatNumber(str)))
+    val expected : Either[Scanner.Error, List[Token]] = List(
+      FloatNumber(str)
+    ).asRight
+
+    assertEquals(Scanner.parse(str), expected)
   }
 
   // test int number
   test("int_number") {
     val str = "123"
-    assertEquals(Scanner.intNumber.parseAll(str), Right(Number(str)))
+    val expected : Either[Scanner.Error, List[Token]] = List(
+      Number(str)
+    ).asRight
   }
 
 

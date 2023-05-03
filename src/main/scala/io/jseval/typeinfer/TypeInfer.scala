@@ -44,21 +44,23 @@ object TypeInfer {
     }
 
     def asArrow[F[_]](
-        typ: Typ
+        typ: Typ,
+        expr: Expr
     )(implicit me: MonadError[F, CompilerError]): F[TArrow] = {
       typ match {
         case x: TArrow => me.pure(x)
-        case _ => me.raiseError(CompilerError.IncorrectType("TArrow", typ))
+        case _ => me.raiseError(CompilerError.IncorrectType("TArrow", expr, typ))
       }
 
     }
 
     def asBool[F[_]](
-        typ: Typ
+        typ: Typ,
+        expr: Expr
     )(implicit me: MonadError[F, CompilerError]): F[Typ] = {
       typ match {
         case TBoolean => me.pure(TBoolean)
-        case _ => me.raiseError(CompilerError.IncorrectType("TBoolean", typ))
+        case _ => me.raiseError(CompilerError.IncorrectType("TBoolean", expr, typ))
       }
     }
 
@@ -134,7 +136,9 @@ object TypeInfer {
         for {
           opAType <- infer(opA)
           opBType <- infer(opB)
+          _ = println(s"$opAType and $opBType")
           result <- fn.infer(opAType)(opBType)
+          _ = println(s"result $result")
         } yield result
       }
 
@@ -165,16 +169,16 @@ object TypeInfer {
       case Buildin(BuildinFn.Logical(fn, opA, opB)) => {
         for {
           aAsValue <- infer(opA)
-          aAsDouble <- Utils.asBool(aAsValue)
+          aAsDouble <- Utils.asBool(aAsValue, opA)
           bAsValue <- infer(opB)
-          bAsDouble <- Utils.asBool(bAsValue)
+          bAsDouble <- Utils.asBool(bAsValue, opB)
         } yield TBoolean
       }
 
       case Cond(pred, trueBranch, falseBranch) => {
         for {
           predType <- infer(pred)
-          predTypeAsBool <- Utils.asBool(predType)
+          predTypeAsBool <- Utils.asBool(predType, pred)
           trueBranchType <- infer(trueBranch)
           falseBranchType <- infer(falseBranch)
           result <-
@@ -182,7 +186,11 @@ object TypeInfer {
               me.pure(trueBranchType)
             } else {
               me.raiseError(
-                CompilerError.IncorrectType(s"$trueBranchType", falseBranchType)
+                CompilerError.IncorrectType(
+                  s"$trueBranchType",
+                  trueBranch,
+                  falseBranchType
+                )
               )
             }
         } yield result
@@ -227,7 +235,7 @@ object TypeInfer {
         for {
           fnType <- infer(fn)
           argType <- infer(arg)
-          fnTypeAsArrow <- Utils.asArrow(fnType)
+          fnTypeAsArrow <- Utils.asArrow(fnType, fn)
           result <-
             if (Utils.equals(argType, fnTypeAsArrow.argType)) {
               me.pure(fnTypeAsArrow.bodyType)
@@ -235,6 +243,7 @@ object TypeInfer {
               me.raiseError(
                 CompilerError.IncorrectType(
                   s"${fnTypeAsArrow.argType}",
+                  arg,
                   argType
                 )
               )
@@ -275,7 +284,11 @@ object TypeInfer {
               infer(body)(me, enclosedEnv)
             } else {
               me.raiseError(
-                CompilerError.IncorrectType(s"$variableType", inferredType)
+                CompilerError.IncorrectType(
+                  s"$variableType",
+                  variable,
+                  inferredType
+                )
               )
             }
         } yield result

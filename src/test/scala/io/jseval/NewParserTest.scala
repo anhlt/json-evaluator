@@ -32,7 +32,7 @@ class NewParserTest extends munit.FunSuite:
 
   test(s"parse_primary_number") {
 
-    val tokens = List(Number("1.0"))
+    val tokens = List(FloatNumber("1.0"))
     val parserOut = ExpressionParser.parsePrecedence(Precendence.LOWEST, tokens)
     assertEquals(parserOut, Right(ParserOut(LiteralExpr(1.0), List())))
   }
@@ -1079,6 +1079,70 @@ class NewParserTest extends munit.FunSuite:
             Variable(tokenU)
           )
         )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  //test bind with type
+  //let sum = fun (x: int) (y : int) -> x + y  
+  //in sum(1, 2)
+  test(s"parse_let_with_type") {
+    val tokens = List(
+      Keyword.LetKw,
+      Identifier("sum"),
+      EqualToken,
+      Keyword.FunKw,
+      LeftParenToken,
+      Identifier("x"),
+      ColonToken,
+      IntKw,
+      RightParenToken,
+      LeftParenToken,
+      Identifier("y"),
+      ColonToken,
+      IntKw,
+      RightParenToken,
+      ArrowToken,
+      Identifier("x"),
+      PlusToken,
+      Identifier("y"),
+      Keyword.InKw,
+      Identifier("sum"),
+      LeftParenToken,
+      Number("1"),
+      CommaToken,
+      Number("2"),
+      RightParenToken
+    )
+    val parserOut = ExpressionParser.expression(tokens)
+
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenSum),
+      variableType = None,
+      Abs(
+        Variable(tokenX),
+        Some(TInt),
+        Abs(
+          Variable(tokenY),
+          Some(TInt),
+          Buildin(
+            BuildinFn.Arithmetic(
+              BuildinFn.Add,
+              Variable(tokenX),
+              Variable(tokenY)
+            )
+          )
+        )
+      ),
+      App(
+        App(
+          Variable(tokenSum),
+          LiteralExpr(1)
+        ),
+        LiteralExpr(2)
       )
     )
 

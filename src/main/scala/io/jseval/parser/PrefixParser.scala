@@ -36,6 +36,8 @@ case object LiteralParser extends PrefixExprParser {
   ): F[ParserResult[Expr]] = {
     tokens match
       case Literal.Number(l) :: rest =>
+        a.pure(ParserOut(Expression.LiteralExpr(l.toInt), rest))
+      case Literal.FloatNumber(l) :: rest =>
         a.pure(ParserOut(Expression.LiteralExpr(l.toDouble), rest))
       case Literal.Str(l) :: rest =>
         a.pure(ParserOut(Expression.LiteralExpr(l), rest))

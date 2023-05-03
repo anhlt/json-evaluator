@@ -331,8 +331,8 @@ class EvaluatorTest extends munit.FunSuite:
   test("evaluate_complex_input") {
 
     val input = """
-   |let mul = fun x y -> x * y
-   |let sum = fun x y -> x + y
+   |let mul = fun (x: int) (y: int) -> x * y
+   |let sum = fun (x: int) (y: int) -> x + y
    |let x = 5
    |let y = 6
    |in sum(12, mul(x, y))
@@ -344,6 +344,8 @@ class EvaluatorTest extends munit.FunSuite:
       value <- ExprEval.eval(bindExpr.expr)
 
     } yield bindExpr
+
+    println(parserResult)
 
     val a = parserResult.map(_.expr).getOrElse(LiteralExpr(5))
 

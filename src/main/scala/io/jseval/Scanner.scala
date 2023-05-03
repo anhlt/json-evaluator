@@ -48,19 +48,14 @@ object Scanner {
   // valid numbers: 1234 or 12.43
   // invalid numbers: .1234 or 1234.
 
-  val intNumber: P[Literal] = N.digits.string.map(Literal.Number(_))
-
-  val floatNumber: P[Literal] = {
-    val fraction = (P.char('.') *> N.digits).string
-    (N.digits ~ fraction).string.map(Literal.FloatNumber(_))
-  }
-
-
-
-
   val number: P[Literal] = {
     val fraction = (P.char('.') *> N.digits).string.backtrack
-    (N.digits ~ fraction.?).string.map(Literal.Number(_))
+    (N.digits ~ fraction.?).string.map({ case value =>
+      if (value.contains('.'))
+        Literal.FloatNumber(value)
+      else
+        Literal.Number(value)
+    })
   }
 
   val singleLineComment: P[Comment] = {
@@ -104,8 +99,7 @@ object Scanner {
       comments,
       identifier,
       str,
-      intNumber,
-      floatNumber
+      number
     )
 
   val token: P[Token] = P.oneOf(allTokens).surroundedBy(whitespaces)

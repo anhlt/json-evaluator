@@ -2,6 +2,7 @@ package io.jseval
 
 import io.jseval.TypModule.Typ
 import io.jseval.Expression.BuildinModule.BuildinFn
+import io.jseval.Expression.Expr
 
 enum CompilerError(msg: String):
   case NoExpectedParser(tokens: List[Token]) extends CompilerError(s"No expected parser for ${tokens.headOption}")
@@ -25,7 +26,7 @@ enum CompilerError(msg: String):
   case ArithmeticTypeException(leftType: Typ, rightType: Typ) extends CompilerError(s"Type mismatch")
   case ComparisonTypeException(leftType: Typ, rightType: Typ) extends CompilerError(s"Type mismatch")
   case UnaryTypeException(fn: BuildinFn.UnaryFn, exprType: Typ) extends CompilerError(s"Type mismatch")
-  case IncorrectType(expectedType: String, givenType: Typ) extends CompilerError(s"Type mismatch")
+  case IncorrectType(expectedType: String, expr: Expr, givenType: Typ) extends CompilerError(s"Type mismatch: $expr expected $expectedType, but given $givenType")
 
 
 enum TypeError(msg: String) :
