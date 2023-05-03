@@ -20,6 +20,8 @@ class NewTypeInferTest extends munit.FunSuite:
   val tokenY = Literal.Identifier("y")
   val tokenZ = Literal.Identifier("z")
   val tokenU = Literal.Identifier("u")
+  val tokenFactorial = Literal.Identifier("factorial")
+
 
 
   val x = Expr.Variable(tokenX)
@@ -58,7 +60,6 @@ class NewTypeInferTest extends munit.FunSuite:
     val parserResult = for {
       tokens <- Scanner.parse(input)
       expr <- ExpressionParser.expression(tokens)
-      _ = println(expr)
       outputType <- TypeInfer.infer(expr.expr)
     } yield outputType
 
@@ -113,5 +114,62 @@ class NewTypeInferTest extends munit.FunSuite:
     assertEquals(parserResult.map(_._2), Right(TInt))
   }
 
+  // test recursive function call factorial number
+  test("type_recursive_function_call_factorial_number") {
 
+    val input = """
+    |let rec factorial : int -> int = fun (x: int) -> if x == 1 then 1 else x * factorial(x - 1)  
+    |in factorial(5)
+   """.stripMargin
 
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      expr <- ExpressionParser.expression(tokens)
+      outputType <- TypeInfer.infer(expr.expr)
+    } yield (expr, outputType)
+
+    // expected expr
+    val expectedExpr = Binding(
+      recursive = true,
+      Variable(tokenFactorial),
+      variableType = Some(TArrow(TInt, TInt)),
+      Abs(
+        Variable(tokenX),
+        Some(TInt),
+        Cond(
+          Buildin(
+            BuildinFn.Comparison(
+              BuildinFn.Equal,
+              Variable(tokenX),
+              LiteralExpr(1)
+            )
+          ),
+          LiteralExpr(1),
+          Buildin(
+            BuildinFn.Arithmetic(
+              BuildinFn.Multiply,
+              Variable(tokenX),
+              App(
+                Variable(tokenFactorial),
+                Buildin(
+                  BuildinFn.Arithmetic(
+                    BuildinFn.Subtract,
+                    Variable(tokenX),
+                    LiteralExpr(1)
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      App(
+        Variable(tokenFactorial),
+        LiteralExpr(5)
+      )
+    )
+
+    assertEquals(parserResult.map(_._1.expr), Right(expectedExpr))
+    assertEquals(parserResult.map(_._2), Right(TInt))
+
+  }

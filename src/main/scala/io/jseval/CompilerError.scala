@@ -13,6 +13,7 @@ enum CompilerError(msg: String):
     extends CompilerError(s"Expected Token in $tokens")
 
   case ExpectIdentifer() extends CompilerError(s"Expected Identifier")
+  case ExpectTypeWhenLetIsRecursive(expr: Expr) extends CompilerError(s"Should define function type when it is recursive $expr")
 
   case ExpectClosing(tokens: List[Token])
     extends CompilerError("Expect ')' after expression")

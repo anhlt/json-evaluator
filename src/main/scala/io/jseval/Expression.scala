@@ -53,8 +53,8 @@ object Expression {
         def apply(fn: ArithmeticFn)(a: Double)(b: Double): Double = {
           fn match {
             case Add => a + b
-            case Sub => a - b
-            case Mul => a * b
+            case Subtract => a - b
+            case Multiply => a * b
             case Div => a / b
           }
         }
@@ -63,8 +63,8 @@ object Expression {
       sealed trait ArithmeticFn
 
       case object Add extends ArithmeticFn
-      case object Sub extends ArithmeticFn
-      case object Mul extends ArithmeticFn
+      case object Subtract extends ArithmeticFn
+      case object Multiply extends ArithmeticFn
       case object Div extends ArithmeticFn
 
       sealed trait ComparisonFn
@@ -126,6 +126,7 @@ object Expression {
       )(implicit a: MonadError[F, CompilerError]): F[Double] = {
         value match {
           case LiteralValue(v: Double) => a.pure(v)
+          case LiteralValue(v: Int) => a.pure(v.toDouble)
           case _ => a.raiseError(CompilerError.WrongType(value, "Double"))
           // case _ => fr.raiseError(WrongType(value, "Double"))
 

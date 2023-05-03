@@ -154,14 +154,14 @@ class NewParserTest extends munit.FunSuite:
 
     val expected = Buildin(
       BuildinFn.Arithmetic(
-        BuildinFn.Sub,
+        BuildinFn.Subtract,
         Buildin(
           BuildinFn.Arithmetic(
             BuildinFn.Add,
             LiteralExpr(1),
             Buildin(
               BuildinFn.Arithmetic(
-                BuildinFn.Mul,
+                BuildinFn.Multiply,
                 LiteralExpr(2),
                 LiteralExpr(3)
               )
@@ -265,7 +265,7 @@ class NewParserTest extends munit.FunSuite:
             BuildinFn.Greater,
             Buildin(
               BuildinFn.Arithmetic(
-                BuildinFn.Mul,
+                BuildinFn.Multiply,
                 Buildin(
                   BuildinFn.Arithmetic(
                     BuildinFn.Add,
@@ -715,7 +715,7 @@ class NewParserTest extends munit.FunSuite:
 
   /*
   Test recursive function
-  let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+  let rec fact : int -> int = fun x -> if x == 0 then 1 else x * fact(x - 1)
   in fact(5)
    */
   test(s"parse_recursive_function") {
@@ -723,6 +723,10 @@ class NewParserTest extends munit.FunSuite:
       Keyword.LetKw,
       Keyword.RecKw,
       Identifier("fact"),
+      Operator.ColonToken,
+      Keyword.IntKw,
+      Operator.ArrowToken,
+      Keyword.IntKw,
       EqualToken,
       Keyword.FunKw,
       Identifier("x"),
@@ -753,7 +757,7 @@ class NewParserTest extends munit.FunSuite:
     val expected = Binding(
       recursive = true,
       Variable(tokenFact),
-      variableType = None,
+      variableType = Some(TArrow(TInt, TInt)),
       Abs(
         Variable(tokenX),
         variableType = None,
@@ -768,13 +772,13 @@ class NewParserTest extends munit.FunSuite:
           LiteralExpr(1),
           Buildin(
             BuildinFn.Arithmetic(
-              BuildinFn.Mul,
+              BuildinFn.Multiply,
               Variable(tokenX),
               App(
                 body = Variable(tokenFact),
                 arg = Buildin(
                   BuildinFn.Arithmetic(
-                    BuildinFn.Sub,
+                    BuildinFn.Subtract,
                     Variable(tokenX),
                     LiteralExpr(1)
                   )

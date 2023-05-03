@@ -12,8 +12,8 @@ import Operator.*
 import Literal.*
 import io.jseval.TypModule.*
 import io.jseval.Expression.BuildinModule.BuildinFn.Arithmetic
-import io.jseval.Expression.BuildinModule.BuildinFn.Sub
-import io.jseval.Expression.BuildinModule.BuildinFn.Mul
+import io.jseval.Expression.BuildinModule.BuildinFn.Subtract
+import io.jseval.Expression.BuildinModule.BuildinFn.Multiply
 import io.jseval.parser.{ExpressionParser, ParserOut, Precendence}
 
 class ParserTest extends munit.FunSuite:
@@ -92,10 +92,10 @@ class ParserTest extends munit.FunSuite:
 
     val want = Buildin(
       BuildinFn.Arithmetic(
-        BuildinFn.Mul,
+        BuildinFn.Multiply,
         Buildin(
           BuildinFn.Arithmetic(
-            BuildinFn.Mul,
+            BuildinFn.Multiply,
             LiteralExpr(
               5.0
             ),
@@ -175,7 +175,7 @@ class ParserTest extends munit.FunSuite:
           body = Variable(name = Identifier("fibo")),
           arg = Buildin(fn =
             Arithmetic(
-              fn = Sub,
+              fn = Subtract,
               opA = Variable(Identifier("n")),
               opB = LiteralExpr(1.0)
             )
@@ -185,7 +185,7 @@ class ParserTest extends munit.FunSuite:
           body = Variable(name = Identifier("fibo")),
           arg = Buildin(fn =
             Arithmetic(
-              fn = Sub,
+              fn = Subtract,
               opA = Variable(Identifier("n")),
               opB = LiteralExpr(2.0)
             )
@@ -254,7 +254,7 @@ class ParserTest extends munit.FunSuite:
               body = Variable(name = Identifier("fibo")),
               arg = Buildin(fn =
                 Arithmetic(
-                  fn = Sub,
+                  fn = Subtract,
                   opA = Variable(Identifier("n")),
                   opB = LiteralExpr(1.0)
                 )
@@ -264,7 +264,7 @@ class ParserTest extends munit.FunSuite:
               body = Variable(name = Identifier("fibo")),
               arg = Buildin(fn =
                 Arithmetic(
-                  fn = Sub,
+                  fn = Subtract,
                   opA = Variable(Identifier("n")),
                   opB = LiteralExpr(2.0)
                 )
@@ -292,11 +292,11 @@ class ParserTest extends munit.FunSuite:
   """
 
     val xMinus1 = Buildin(
-      Arithmetic(Sub, x, LiteralExpr(1))
+      Arithmetic(Subtract, x, LiteralExpr(1))
     )
 
     val falseBranch = Buildin(
-      Arithmetic(Mul, x, App(body = factorialVariable, arg = xMinus1))
+      Arithmetic(Multiply, x, App(body = factorialVariable, arg = xMinus1))
     )
 
     val comparision = Buildin(
@@ -327,16 +327,16 @@ class ParserTest extends munit.FunSuite:
 
   test("binding_rec") {
     val input = """
-  |let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+  |let rec fact: int -> int = fun x -> if x == 0 then 1 else x * fact(x - 1)
   |in fact(5)
   """.stripMargin
 
     val xMinus1 = Buildin(
-      Arithmetic(Sub, x, LiteralExpr(1))
+      Arithmetic(Subtract, x, LiteralExpr(1))
     )
 
     val falseBranch = Buildin(
-      Arithmetic(Mul, x, App(body = factorialVariable, arg = xMinus1))
+      Arithmetic(Multiply, x, App(body = factorialVariable, arg = xMinus1))
     )
 
     val comparision = Buildin(
@@ -358,6 +358,7 @@ class ParserTest extends munit.FunSuite:
     val want = Binding(
       recursive = true,
       variableName = factorialVariable,
+      variableType = Some(TArrow(TInt, TInt)),
       body = sumBody,
       expr = App(
         body = factorialVariable,

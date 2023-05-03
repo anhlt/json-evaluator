@@ -351,6 +351,12 @@ case object LetBindingPrefixParser extends PrefixExprParser {
       (isRec, afterRec) = isRecursive
       variableAndExpectedType <- letVariable(afterRec)
       (variableExpr, expectedType) = variableAndExpectedType
+      // check if expected type is provided when let is recursive
+      _ <- (isRec, expectedType) match {
+        case (true, None) => me.raiseError(CompilerError.ExpectTypeWhenLetIsRecursive(variableExpr.expr))
+        case _ => ().pure[F]
+      }
+
       variable <- asVariable(variableExpr.expr)
       equalAndRmn <- consume(Operator.EqualToken, variableExpr.rmn)
       exprAndRmn <- ExpressionParser.expression(equalAndRmn._2)

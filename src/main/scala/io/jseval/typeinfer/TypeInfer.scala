@@ -136,9 +136,7 @@ object TypeInfer {
         for {
           opAType <- infer(opA)
           opBType <- infer(opB)
-          _ = println(s"$opAType and $opBType")
           result <- fn.infer(opAType)(opBType)
-          _ = println(s"result $result")
         } yield result
       }
 
@@ -269,7 +267,16 @@ object TypeInfer {
             body: Expr
           ) => {
         for {
-          inferredType <- infer(variableAssignment)
+          inferredType <- {
+            val newEnv = if (recursive) {
+              env + (variable.name -> variableType.get)
+            } else {
+              env
+            }
+
+            infer(variableAssignment)(me, newEnv)
+
+          }
           typeCheckResult <-
             if (variableType.isDefined) {
               me.pure(Utils.equals(variableType.get, inferredType))
