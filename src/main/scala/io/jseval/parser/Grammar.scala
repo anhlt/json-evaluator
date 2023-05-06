@@ -20,9 +20,13 @@ trait BaseGrammar[T] {
       tokens: List[Token]
   )(implicit a: MonadError[F, CompilerError]): F[Precendence]
 
+
 }
 
 object Grammar extends BaseGrammar[Expr] {
+
+
+
   def mPrefixParsers[F[_]](
       tokens: List[Token]
   )(implicit a: MonadError[F, CompilerError]): F[PrefixParser[Expr]] = {

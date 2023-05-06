@@ -22,16 +22,11 @@ class NewTypeInferTest extends munit.FunSuite:
   val tokenU = Literal.Identifier("u")
   val tokenFactorial = Literal.Identifier("factorial")
 
-
-
   val x = Expr.Variable(tokenX)
   val y = Expr.Variable(tokenY)
   val tokenSum = Literal.Identifier("sum")
 
-
   implicit val env: TypeInfer.TypeEnv = Map()
-
-
 
   // test int plus double
 
@@ -80,7 +75,6 @@ class NewTypeInferTest extends munit.FunSuite:
       outputType <- TypeInfer.infer(expr.expr)
     } yield (expr, outputType)
 
-
     // expected expr should be bind expr
     val expectedExpr = Binding(
       recursive = false,
@@ -108,7 +102,7 @@ class NewTypeInferTest extends munit.FunSuite:
         ),
         LiteralExpr(2)
       )
-    ) 
+    )
 
     assertEquals(parserResult.map(_._1.expr), Right(expectedExpr))
     assertEquals(parserResult.map(_._2), Right(TInt))
@@ -171,5 +165,24 @@ class NewTypeInferTest extends munit.FunSuite:
 
     assertEquals(parserResult.map(_._1.expr), Right(expectedExpr))
     assertEquals(parserResult.map(_._2), Right(TInt))
+
+  }
+
+  // test type infer for partial function with 3 args
+  test("infer_type_for_partial_function") {
+    val input = """
+      |let func1 : int -> string -> int -> string = fun (x: int)(y:string)(z:int) -> "string"
+      |let func2 : string -> int -> string = func1(5)
+      |let func3 : int -> string = func2("test")
+      |in func3(5)
+      """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      expr <- ExpressionParser.expression(tokens)
+      outputType <- TypeInfer.infer(expr.expr)
+    } yield (expr, outputType)
+
+    assertEquals(parserResult.map(_._2), Right(TString))
 
   }

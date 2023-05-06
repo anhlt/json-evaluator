@@ -109,7 +109,7 @@ case object IdentifierParser extends PrefixExprParser {
         (comma, afterComma) = commaAndTokens
         rs <- appArgs(App(callerExpr, argAndRemaining.expr), afterComma)
       } yield (rs)).recover({
-        case CompilerError.ExpectToken(Operator.CommaToken) =>
+        case CompilerError.ExpectToken(Operator.CommaToken, _) =>
           ParserOut(App(callerExpr, argAndRemaining.expr), argAndRemaining.rmn)
       })
 
@@ -194,9 +194,9 @@ case object ConditionPrefixParser extends PrefixExprParser {
                       rmn3
                     )
                   case _ =>
-                    a.raiseError(CompilerError.ExpectToken(Keyword.ThenKw))
+                    a.raiseError(CompilerError.ExpectToken(Keyword.ThenKw, rmn2))
               } yield (result)
-            case _ => a.raiseError(CompilerError.ExpectToken(Keyword.ElseKw))
+            case _ => a.raiseError(CompilerError.ExpectToken(Keyword.ElseKw, rmn))
         } yield (result)
       case _ => a.raiseError(CompilerError.ExpectExpression(tokens))
   }
@@ -218,7 +218,7 @@ case object FunctionPrefixParser extends PrefixExprParser {
         for {
           parserOut <- lambda(rest)
         } yield (parserOut)
-      case _ => a.raiseError(CompilerError.ExpectToken(Keyword.FunKw))
+      case _ => a.raiseError(CompilerError.ExpectToken(Keyword.FunKw, tokens))
   }
 
   /*
@@ -310,7 +310,7 @@ case object LetBindingPrefixParser extends PrefixExprParser {
           parserOut <- letBinding(rest)
         } yield (parserOut)
       case _ =>
-        a.raiseError(CompilerError.ExpectToken(Keyword.LetKw))
+        a.raiseError(CompilerError.ExpectToken(Keyword.LetKw, tokens))
   }
 
   /*
@@ -334,7 +334,7 @@ case object LetBindingPrefixParser extends PrefixExprParser {
       ParserOut(argAndRmn.expr, expectedType.rmn),
       Some(expectedType.expr)
     )).recoverWith({
-      case CompilerError.ExpectToken(Operator.ColonToken) => (
+      case CompilerError.ExpectToken(Operator.ColonToken, _) => (
         IdentifierParser.parse(tokens).map((_, None))
       )
     })
@@ -362,7 +362,7 @@ case object LetBindingPrefixParser extends PrefixExprParser {
       exprAndRmn <- ExpressionParser.expression(equalAndRmn._2)
       result: ParserResult[Expr] <- (for {
         rs <- in(exprAndRmn.rmn)
-      } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.InKw) =>
+      } yield rs).recoverWith({ case CompilerError.ExpectToken(Keyword.InKw, _) =>
         LetBindingPrefixParser.parse(exprAndRmn.rmn)
       })
 

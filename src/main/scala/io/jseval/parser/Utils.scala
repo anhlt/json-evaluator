@@ -22,6 +22,6 @@ case object Utils {
   )(implicit a: MonadError[F, CompilerError]): F[(Token, List[Token])] =
     tokens match {
       case token :: rest if token == expect => a.pure((expect, rest))
-      case _ => a.raiseError(CompilerError.ExpectToken(expect))
+      case _ => a.raiseError(CompilerError.ExpectToken(expect, tokens))
     }
 }

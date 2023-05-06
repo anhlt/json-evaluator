@@ -345,7 +345,6 @@ class EvaluatorTest extends munit.FunSuite:
 
     } yield bindExpr
 
-    println(parserResult)
 
     val a = parserResult.map(_.expr).getOrElse(LiteralExpr(5))
 

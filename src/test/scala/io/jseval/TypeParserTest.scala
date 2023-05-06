@@ -56,7 +56,7 @@ class TypeParserTest extends munit.FunSuite:
       result,
       Right(
         TypeParserResult(
-          TArrow(TArrow(TInt, TInt), TInt),
+          TArrow(TInt, TArrow(TInt, TInt)),
           List()
         )
       )
@@ -72,12 +72,29 @@ class TypeParserTest extends munit.FunSuite:
       result,
       Right(
         TypeParserResult(
-          TProduct(TProduct(TInt, TInt), TInt),
+          TProduct(TInt, TProduct(TInt, TInt)),
           List()
         )
       )
     )
   }
+
+  // test right associative arrow type
+  // Int -> Bool -> Int
+  test("parse_right_associative_arrow_type") {
+    val tokens = List(IntKw, ArrowToken, BooleanKw, ArrowToken, IntKw)
+    val result = TypeParser.parseType(tokens)
+    assertEquals(
+      result,
+      Right(
+        TypeParserResult(
+          TArrow(TInt, TArrow(TBoolean, TInt)),
+          List()
+        )
+      )
+    )
+  }
+
 
   // test nested product and arrow type
   // Int => Boolean * Boolean => String
@@ -97,11 +114,11 @@ class TypeParserTest extends munit.FunSuite:
       Right(
         TypeParserResult(
           TArrow(
+            TInt,
             TArrow(
-              TInt,
-              TProduct(TBoolean, TBoolean)
-            ),
-            TString
+              TProduct(TBoolean, TBoolean),
+              TString
+            )
           ),
           List()
         )
