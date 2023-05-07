@@ -28,14 +28,6 @@ object TypeInfer {
 
   object Utils {
 
-    // def checkEquals[F[_]](typ1: Typ, typ2: Typ)(implicit me: MonadError[F, TypeError.Error]): F[Typ] = {
-
-    //   typ1 match {
-    //     case TArrow()
-    //   }
-
-    // }
-
     def asArrow[F[_]](
         typ: Typ
     )(implicit me: MonadError[F, TypeError.Error]): F[TArrow] = {
@@ -63,7 +55,8 @@ object TypeInfer {
 
     def asType(v: LiteralType): Typ = {
       v match {
-        case x: Double  => TInt
+        case x: Double  => TDouble
+        case x: Int => TInt
         case _: String  => TString
         case _: Boolean => TBoolean
       }
@@ -169,7 +162,13 @@ object TypeInfer {
             }
         } yield result
       }
-
+      
+      // The type of a function will be TArrow
+      // fun x : int = x + 5
+      // we need to add the type of the variable to the environment
+      // so that we can use it in the body
+      // then we need to infer the type of the body
+      // and return the type of the function 
       case Abs(variable, variableType, body) => {
         val newEnv = env + (variable.name -> variableType.getOrElse(TAny))
 
@@ -188,22 +187,34 @@ object TypeInfer {
             me.raiseError(TypeError.UnboundedNameWhileTypeCheck(token))
         }
 
-      case App(expr, arg) => {
+        
+      // Type inference for function application
+      // the body of the function must be a TArrow
+      // the type of the argument must be the same as the type of the argument of the TArrow
+      // example:
+      // let f = x: int -> x + 5 in f(5)
+      // f is a TArrow(TInt, TInt)
+      // 5 is a TInt
+      // so we can apply f to 5
+      case App(body, arg) => {
         for {
-          bodyType <- infer(expr)
+          bodyType <- infer(body)
           bodyTypeAsArrow <- Utils.asArrow(bodyType)
           argValue <- infer(arg)
           result <- Utils.appInfer(bodyTypeAsArrow, argValue)
-
         } yield result
       }
 
-      // let f \x x + 5
-      // recursive = 0 , var = f , body = \x = x + 5, expr = app f x
-
-      // let sum = \x = x + 1 {
-
-      // }
+      // let sum = x : int -> x + 1 in sum(5)
+      // Type inference for let binding
+      // we need to infer the type of the body
+      // and add the type of the variable to the environment
+      // so that we can use it in the body
+      // example:
+      // let x = 5 in x + 1
+      // x is a TInt
+      // we need to add x to the environment
+      // and infer the type of x + 1
 
       case Binding(
             recursive: Boolean,

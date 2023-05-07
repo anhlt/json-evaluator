@@ -16,6 +16,8 @@ object Evaluator {
 
   object Utils {
 
+
+    // lazyFixPoint = \f. (\x. f(x x))(\x. f(x x))
     val lazyFixPoint = {
 
       val tX = Literal.Identifier("x")
@@ -47,13 +49,16 @@ object Evaluator {
       )
     }
 
+    // eagerFixPoint = \f. (\x. f(\v. x x v))(\x. f(\v x x v))
     val eagerFixPoint = {
 
       val tX = Literal.Identifier("x")
       val tV = Literal.Identifier("v")
-      val tFinal = Literal.Identifier("f")
+      val tFinal = Literal.Identifier("eagerFixPoint")
 
-      // \x. f(x x)
+      // define inner 
+      // \v. x x v
+
 
       val indirect = Abs(
         variableName = Variable(tV),
@@ -67,6 +72,8 @@ object Evaluator {
         )
       )
 
+      // \x. f(\v. x x v)
+
       val innerAbs = Abs(
         variableName = Variable(tX),
         variableType = None,
@@ -76,8 +83,8 @@ object Evaluator {
         )
       )
 
-      // \f. (\x. f(x x))(\x f(x x))
-
+      // \f. (\x. f(\v. x x v))(\x. f(\v x x v))
+      
       Abs(
         variableName = Variable(tFinal),
         variableType = None,
@@ -104,7 +111,7 @@ object Evaluator {
           aAsDouble <- Value.asDouble(aAsValue)
           bAsValue <- eval(opB)
           bAsDouble <- Value.asDouble(bAsValue)
-        } yield LiteralValue(ArthimetricFn.apply(fn)(aAsDouble)(bAsDouble))
+        } yield LiteralValue(ArithmeticFn.apply(fn)(aAsDouble)(bAsDouble))
       }
 
       case Buildin(Comparison(fn, opA, opB)) => {

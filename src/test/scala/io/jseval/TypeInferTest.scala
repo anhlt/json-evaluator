@@ -35,10 +35,10 @@ class TypeInferTest extends munit.FunSuite:
       BuildinFn.Arithmetic(
         BuildinFn.Add,
         Expr.LiteralExpr(
-          2.0
+          2
         ),
         Expr.LiteralExpr(
-          3.0
+          3
         )
       )
     )
@@ -159,11 +159,11 @@ class TypeInferTest extends munit.FunSuite:
     val finalBind = Binding(
       recursive = false,
       variableName = Variable(tokenZ),
-      body = Expr.LiteralExpr(4.0),
+      body = Expr.LiteralExpr(4),
       expr = Binding(
         recursive = false,
         variableName = Variable(tokenU),
-        body = Expr.LiteralExpr(3.0),
+        body = Expr.LiteralExpr(3),
         expr = sum
       )
     )
@@ -215,7 +215,7 @@ class TypeInferTest extends munit.FunSuite:
     val finalBind = Binding(
       recursive = false,
       variableName = Variable(tokenZ),
-      body = Expr.LiteralExpr(4.0),
+      body = Expr.LiteralExpr("4.0"),
       expr = Binding(
         recursive = false,
         variableName = Variable(tokenU),

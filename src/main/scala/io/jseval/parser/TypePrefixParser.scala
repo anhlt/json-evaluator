@@ -21,6 +21,7 @@ case object PrimaryParser extends TypePrefixParser {
       case Keyword.IntKw :: rest     => TypeParserResult(TInt, rest).pure[F]
       case Keyword.BooleanKw :: rest => TypeParserResult(TBoolean, rest).pure[F]
       case Keyword.StringKw :: rest  => TypeParserResult(TString, rest).pure[F]
+      case _ => me.raiseError(CompilerError.ExpectExpression(tokens))
     }
   }
 }

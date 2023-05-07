@@ -7,6 +7,7 @@ enum Literal(val lexeme: String) extends Token:
   case Identifier(override val lexeme: String) extends Literal(lexeme)
   case Str(override val lexeme: String) extends Literal(lexeme)
   case Number(override val lexeme: String) extends Literal(lexeme)
+  case FloatNumber(override val lexeme: String) extends Literal(lexeme)
 
 enum Operator(val lexeme: String) extends Token:
 

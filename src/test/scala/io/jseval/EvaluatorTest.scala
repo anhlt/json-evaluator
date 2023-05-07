@@ -142,7 +142,7 @@ class EvaluatorTest extends munit.FunSuite:
           BuildinFn.Add,
           x,
           Expr.LiteralExpr(
-            3
+            3.0
           )
         )
       )
@@ -160,8 +160,8 @@ class EvaluatorTest extends munit.FunSuite:
       )
     )
 
-    val result: MyEither[Value] = ExprEval.eval[MyEither](inc3(1.0))
-    assertEquals(result, Right(LiteralValue(4.0)))
+    val result: MyEither[Value] = ExprEval.eval[MyEither](inc3(1))
+    assertEquals(result, Right(LiteralValue(4)))
 
   }
 
@@ -275,25 +275,25 @@ class EvaluatorTest extends munit.FunSuite:
     // x - 1
 
     val xMinus1 = Buildin(
-      Arithmetic(Sub, x, LiteralExpr(1))
+      Arithmetic(Subtract, x, LiteralExpr(1.0))
     )
 
     // x * factorial(x-1)
 
     val falseBranch = Buildin(
-      Arithmetic(Mul, x, App(body = factorialVariable, arg = xMinus1))
+      Arithmetic(Multiply, x, App(body = factorialVariable, arg = xMinus1))
     )
 
     // x == 0
     val comparision = Buildin(
-      Comparison(Equal, x, LiteralExpr(0))
+      Comparison(Equal, x, LiteralExpr(0.0))
     )
 
     // 1 if x == 0 else x * factorial(x - 1)
 
     val factExpr = Cond(
       pred = comparision,
-      trueBranch = LiteralExpr(1),
+      trueBranch = LiteralExpr(1.0),
       falseBranch = falseBranch
     )
 
@@ -319,7 +319,7 @@ class EvaluatorTest extends munit.FunSuite:
       body = facApp,
       expr = App(
         body = factorialVariable, //
-        arg = LiteralExpr(5)
+        arg = LiteralExpr(5.0)
       )
     )
 
@@ -331,8 +331,8 @@ class EvaluatorTest extends munit.FunSuite:
   test("evaluate_complex_input") {
 
     val input = """
-   |let mul = fun x y -> x * y
-   |let sum = fun x y -> x + y
+   |let mul = fun (x: int) (y: int) -> x * y
+   |let sum = fun (x: int) (y: int) -> x + y
    |let x = 5
    |let y = 6
    |in sum(12, mul(x, y))
@@ -345,6 +345,7 @@ class EvaluatorTest extends munit.FunSuite:
 
     } yield bindExpr
 
+
     val a = parserResult.map(_.expr).getOrElse(LiteralExpr(5))
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](a)
@@ -356,7 +357,7 @@ class EvaluatorTest extends munit.FunSuite:
   test("evaluate_rec_binding") {
 
     val input = """
-   |let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+   |let rec fact : int -> int = fun x -> if x == 0 then 1 else x * fact(x - 1)
    |in fact(5)
    """.stripMargin
 
@@ -374,7 +375,7 @@ class EvaluatorTest extends munit.FunSuite:
   test("evaluate_rec_fibonacy") {
 
     val input = """
-   |let rec fibo = fun n -> if n <= 0 then 0 else if n == 1 then 1 else fibo(n-1) + fibo(n-2)
+   |let rec fibo : int -> int = fun n -> if n <= 0 then 0 else if n == 1 then 1 else fibo(n-1) + fibo(n-2)
    |in fibo(10)
    """.stripMargin
 

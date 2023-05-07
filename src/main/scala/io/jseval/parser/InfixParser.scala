@@ -51,12 +51,12 @@ case object PlusInfixParser extends InfixExprParser:
 
 case object MinusInfixParser extends InfixExprParser:
   val parser: (Expr, Expr) => Expr =
-    (l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Sub, l, r))
+    (l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Subtract, l, r))
   val precedence: Precendence = Precendence.TERM
 
 case object MultiplyInfixParser extends InfixExprParser:
   val parser: (Expr, Expr) => Expr =
-    (l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Mul, l, r))
+    (l, r) => Buildin(BuildinFn.Arithmetic(BuildinFn.Multiply, l, r))
   val precedence: Precendence = Precendence.PRODUCT
 
 case object DivideInfixParser extends InfixExprParser:

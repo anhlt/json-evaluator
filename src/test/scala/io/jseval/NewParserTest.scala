@@ -32,7 +32,7 @@ class NewParserTest extends munit.FunSuite:
 
   test(s"parse_primary_number") {
 
-    val tokens = List(Number("1.0"))
+    val tokens = List(FloatNumber("1.0"))
     val parserOut = ExpressionParser.parsePrecedence(Precendence.LOWEST, tokens)
     assertEquals(parserOut, Right(ParserOut(LiteralExpr(1.0), List())))
   }
@@ -154,14 +154,14 @@ class NewParserTest extends munit.FunSuite:
 
     val expected = Buildin(
       BuildinFn.Arithmetic(
-        BuildinFn.Sub,
+        BuildinFn.Subtract,
         Buildin(
           BuildinFn.Arithmetic(
             BuildinFn.Add,
             LiteralExpr(1),
             Buildin(
               BuildinFn.Arithmetic(
-                BuildinFn.Mul,
+                BuildinFn.Multiply,
                 LiteralExpr(2),
                 LiteralExpr(3)
               )
@@ -265,7 +265,7 @@ class NewParserTest extends munit.FunSuite:
             BuildinFn.Greater,
             Buildin(
               BuildinFn.Arithmetic(
-                BuildinFn.Mul,
+                BuildinFn.Multiply,
                 Buildin(
                   BuildinFn.Arithmetic(
                     BuildinFn.Add,
@@ -715,7 +715,7 @@ class NewParserTest extends munit.FunSuite:
 
   /*
   Test recursive function
-  let rec fact = fun x -> if x == 0 then 1 else x * fact(x - 1)
+  let rec fact : int -> int = fun x -> if x == 0 then 1 else x * fact(x - 1)
   in fact(5)
    */
   test(s"parse_recursive_function") {
@@ -723,6 +723,10 @@ class NewParserTest extends munit.FunSuite:
       Keyword.LetKw,
       Keyword.RecKw,
       Identifier("fact"),
+      Operator.ColonToken,
+      Keyword.IntKw,
+      Operator.ArrowToken,
+      Keyword.IntKw,
       EqualToken,
       Keyword.FunKw,
       Identifier("x"),
@@ -753,7 +757,7 @@ class NewParserTest extends munit.FunSuite:
     val expected = Binding(
       recursive = true,
       Variable(tokenFact),
-      variableType = None,
+      variableType = Some(TArrow(TInt, TInt)),
       Abs(
         Variable(tokenX),
         variableType = None,
@@ -768,13 +772,13 @@ class NewParserTest extends munit.FunSuite:
           LiteralExpr(1),
           Buildin(
             BuildinFn.Arithmetic(
-              BuildinFn.Mul,
+              BuildinFn.Multiply,
               Variable(tokenX),
               App(
                 body = Variable(tokenFact),
                 arg = Buildin(
                   BuildinFn.Arithmetic(
-                    BuildinFn.Sub,
+                    BuildinFn.Subtract,
                     Variable(tokenX),
                     LiteralExpr(1)
                   )
@@ -1079,6 +1083,70 @@ class NewParserTest extends munit.FunSuite:
             Variable(tokenU)
           )
         )
+      )
+    )
+
+    assertEquals(parserOut, Right(ParserOut(expected, List())))
+  }
+
+  //test bind with type
+  //let sum = fun (x: int) (y : int) -> x + y  
+  //in sum(1, 2)
+  test(s"parse_let_with_type") {
+    val tokens = List(
+      Keyword.LetKw,
+      Identifier("sum"),
+      EqualToken,
+      Keyword.FunKw,
+      LeftParenToken,
+      Identifier("x"),
+      ColonToken,
+      IntKw,
+      RightParenToken,
+      LeftParenToken,
+      Identifier("y"),
+      ColonToken,
+      IntKw,
+      RightParenToken,
+      ArrowToken,
+      Identifier("x"),
+      PlusToken,
+      Identifier("y"),
+      Keyword.InKw,
+      Identifier("sum"),
+      LeftParenToken,
+      Number("1"),
+      CommaToken,
+      Number("2"),
+      RightParenToken
+    )
+    val parserOut = ExpressionParser.expression(tokens)
+
+    val expected = Binding(
+      recursive = false,
+      Variable(tokenSum),
+      variableType = None,
+      Abs(
+        Variable(tokenX),
+        Some(TInt),
+        Abs(
+          Variable(tokenY),
+          Some(TInt),
+          Buildin(
+            BuildinFn.Arithmetic(
+              BuildinFn.Add,
+              Variable(tokenX),
+              Variable(tokenY)
+            )
+          )
+        )
+      ),
+      App(
+        App(
+          Variable(tokenSum),
+          LiteralExpr(1)
+        ),
+        LiteralExpr(2)
       )
     )
 

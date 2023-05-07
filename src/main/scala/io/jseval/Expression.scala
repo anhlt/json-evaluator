@@ -5,11 +5,12 @@ import cats.implicits._
 import TypModule._
 
 
-type LiteralType = Double | Boolean | String
+type LiteralType = Double | Boolean | String | Int
 object LiteralType {
   implicit def asType(v: LiteralType): Typ = {
     v match {
-      case x: Double  => TInt
+      case x: Double  => TDouble
+      case _: Int => TInt
       case _: String  => TString
       case _: Boolean => TBoolean
     }
@@ -48,23 +49,23 @@ object Expression {
         }
       }
 
-      object ArthimetricFn {
-        def apply(fn: ArthimetricFn)(a: Double)(b: Double): Double = {
+      object ArithmeticFn {
+        def apply(fn: ArithmeticFn)(a: Double)(b: Double): Double = {
           fn match {
             case Add => a + b
-            case Sub => a - b
-            case Mul => a * b
+            case Subtract => a - b
+            case Multiply => a * b
             case Div => a / b
           }
         }
       }
 
-      sealed trait ArthimetricFn
+      sealed trait ArithmeticFn
 
-      case object Add extends ArthimetricFn
-      case object Sub extends ArthimetricFn
-      case object Mul extends ArthimetricFn
-      case object Div extends ArthimetricFn
+      case object Add extends ArithmeticFn
+      case object Subtract extends ArithmeticFn
+      case object Multiply extends ArithmeticFn
+      case object Div extends ArithmeticFn
 
       sealed trait ComparisonFn
 
@@ -104,7 +105,7 @@ object Expression {
 
       case class Unary(fn: UnaryFn, opA: Expr) extends BuildinFn
 
-      case class Arithmetic(fn: ArthimetricFn, opA: Expr, opB: Expr)
+      case class Arithmetic(fn: ArithmeticFn, opA: Expr, opB: Expr)
           extends BuildinFn
 
       case class Comparison(fn: ComparisonFn, opA: Expr, opB: Expr)
@@ -125,6 +126,7 @@ object Expression {
       )(implicit a: MonadError[F, CompilerError]): F[Double] = {
         value match {
           case LiteralValue(v: Double) => a.pure(v)
+          case LiteralValue(v: Int) => a.pure(v.toDouble)
           case _ => a.raiseError(CompilerError.WrongType(value, "Double"))
           // case _ => fr.raiseError(WrongType(value, "Double"))
 
