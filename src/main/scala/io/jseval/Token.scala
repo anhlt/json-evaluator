@@ -39,6 +39,7 @@ enum Operator(val lexeme: String) extends Token:
   case GreaterEqualToken extends Operator(">=")
   case LessToken extends Operator("<")
   case LessEqualToken extends Operator("<=")
+  case ApostropeToken extends Operator("'")
 
 enum Keyword(val lexeme: String) extends Token:
 

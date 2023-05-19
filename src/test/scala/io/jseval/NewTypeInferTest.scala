@@ -186,3 +186,113 @@ class NewTypeInferTest extends munit.FunSuite:
     assertEquals(parserResult.map(_._2), Right(TString))
 
   }
+
+
+
+  test("infer_type_for_generic_function_2") {
+    val input = """
+    |let func1 = fun (x: 'T)(convert: T' -> string) -> convert(x)
+    |let intToString = fun (x: int) -> "string"
+    |let result = func1(5, intToString)
+    |in result
+    """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      expr <- ExpressionParser.expression(tokens)
+      outputType <- TypeInfer.infer(expr.expr)
+    } yield (expr, outputType)
+
+    val expectedExpr = Binding(
+      recursive = false,
+      Variable(Literal.Identifier("func1")),
+      variableType = None,
+      body = Abs(
+        variableName = Variable(Literal.Identifier("x")),
+        variableType = Some(TVar(Literal.Identifier("T"))),
+        body = Abs(
+          variableName = Variable(Literal.Identifier("convert")),
+          variableType = Some(TArrow(TVar(Literal.Identifier("T")), TString)),
+          body = App(
+            Variable(Literal.Identifier("convert")),
+            Variable(Literal.Identifier("x"))
+          )
+        )
+      ),
+      expr = Binding(
+        recursive = false,
+        Variable(Literal.Identifier("intToString")),
+        variableType = None,
+        body = Abs(
+          variableName = Variable(Literal.Identifier("x")),
+          variableType = Some(TInt),
+          body = LiteralExpr("string")
+        ),
+        expr = Binding(
+          recursive = false,
+          Variable(Literal.Identifier("result")),
+          variableType = None,
+          body = App(
+            App(
+              Variable(Literal.Identifier("func1")),
+              LiteralExpr(5)
+            ),
+            Variable(Literal.Identifier("intToString"))
+          ),
+          expr = Variable(Literal.Identifier("result"))
+        )
+      )
+    )
+
+    assertEquals(parserResult.map(_._1.expr), Right(expectedExpr))
+
+    assertEquals(parserResult.map(_._2), Right(TString))
+  }
+
+  // test type infer for generic function
+  test("infer_type_for_generic_function") {
+    val input = """
+    |let func1: 'T -> 'U -> 'T = fun (x: 'T)(y: 'U) -> x
+    |let result = func1(5, 6)
+    |in result
+    """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      expr <- ExpressionParser.expression(tokens)
+      outputType <- TypeInfer.infer(expr.expr)
+    } yield (expr, outputType)
+
+    val expectedExpr = Binding(
+      recursive = false,
+      Variable(Literal.Identifier("func1")),
+      variableType = Some(TArrow(TVar(Literal.Identifier("T")), TArrow(TVar(Literal.Identifier("U")), TVar(Literal.Identifier("T"))))),
+      body = Abs(
+        variableName = Variable(Literal.Identifier("x")),
+        variableType = Some(TVar(Literal.Identifier("T"))),
+        body = Abs(
+          variableName = Variable(Literal.Identifier("y")),
+          variableType = Some(TVar(Literal.Identifier("U"))),
+          body = Variable(Literal.Identifier("x"))
+        )
+      ),
+      expr = Binding(
+        recursive = false,
+        Variable(Literal.Identifier("result")),
+        variableType = None,
+        body = App(
+          App(
+            Variable(Literal.Identifier("func1")),
+            LiteralExpr(5)
+          ),
+          LiteralExpr(6)
+        ),
+        expr = Variable(Literal.Identifier("result"))
+      )
+    )
+
+
+    // assertEquals(parserResult.map(_._1.expr), Right(expectedExpr))
+
+    assertEquals(parserResult.map(_._2), Right(TString))
+  }

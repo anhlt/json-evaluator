@@ -7,13 +7,8 @@ import cats._
 import cats.implicits._
 import io.jseval.CompilerError
 import io.jseval.Expression.TupleExpr
-import io.jseval.TypModule.TProduct
-import io.jseval.TypModule.TInt
-import io.jseval.TypModule.TDouble
-import io.jseval.TypModule.TString
-import io.jseval.TypModule.TBoolean
+import io.jseval.TypModule._
 import io.jseval.LiteralType
-import io.jseval.TypModule.TArrow
 import io.jseval.Expression.LiteralExpr
 import io.jseval.Expression.Buildin
 import io.jseval.Expression.BuildinModule.BuildinFn.ComparisonFn
@@ -48,8 +43,10 @@ object TypeInfer {
         expr: Expr
     )(implicit me: MonadError[F, CompilerError]): F[TArrow] = {
       typ match {
-        case x: TArrow => me.pure(x)
-        case _ => me.raiseError(CompilerError.IncorrectType("TArrow", expr, typ))
+        case x: TArrow                                => me.pure(x)
+        case TClosuse(env, placeholder, body: TArrow) => body.pure[F]
+        case _ =>
+          me.raiseError(CompilerError.IncorrectType("TArrow", expr, typ))
       }
 
     }
@@ -60,7 +57,8 @@ object TypeInfer {
     )(implicit me: MonadError[F, CompilerError]): F[Typ] = {
       typ match {
         case TBoolean => me.pure(TBoolean)
-        case _ => me.raiseError(CompilerError.IncorrectType("TBoolean", expr, typ))
+        case _ =>
+          me.raiseError(CompilerError.IncorrectType("TBoolean", expr, typ))
       }
     }
 
@@ -70,6 +68,7 @@ object TypeInfer {
         case (TString, TString)   => true
         case (TBoolean, TBoolean) => true
         case (TDouble, TDouble)   => true
+        case (_, t2: TVar)        => true
         case (t1: TArrow, t2: TArrow) =>
           equals(t1.argType, t2.argType) && equals(t1.bodyType, t2.bodyType)
         case (t1: TProduct, t2: TProduct) =>
@@ -196,6 +195,7 @@ object TypeInfer {
 
       // The type of a function will be TArrow
       // fun x : int = x + 5
+      // fun x : 'T  = x + 5
       // we need to add the type of the variable to the environment
       // so that we can use it in the body
       // then we need to infer the type of the body
@@ -204,11 +204,10 @@ object TypeInfer {
 
         variableType match {
           case Some(valType) =>
+            println(s"variable: $variable valType : $valType")
             val enclosedEnv = env + (variable.name -> valType)
             infer(body)(me, enclosedEnv).flatMap(bodyType =>
-              me.pure(
-                TArrow(valType, bodyType)
-              )
+              TArrow(valType, bodyType).pure[F]
             )
           case None =>
             me.raiseError(CompilerError.MissingTypeAnnotation(variable.name))
@@ -230,9 +229,11 @@ object TypeInfer {
       // we need to infer the type of f and 3
       // and then return the type of the body
       case App(fn, arg) => {
+        println(s"App for $fn and== $arg")
         for {
           fnType <- infer(fn)
           argType <- infer(arg)
+          _ = println(s" fnType:$fnType, argType:$argType ")
           fnTypeAsArrow <- Utils.asArrow(fnType, fn)
           result <-
             if (Utils.equals(argType, fnTypeAsArrow.argType)) {
@@ -266,6 +267,7 @@ object TypeInfer {
             variableAssignment: Expr,
             body: Expr
           ) => {
+        println(s"Binding for $variable, with type: $variableType")
         for {
           inferredType <- {
             val newEnv = if (recursive) {
@@ -275,8 +277,8 @@ object TypeInfer {
             }
 
             infer(variableAssignment)(me, newEnv)
-
           }
+          _ = println(s"$variable has type: $inferredType")
           typeCheckResult <-
             if (variableType.isDefined) {
               me.pure(Utils.equals(variableType.get, inferredType))
