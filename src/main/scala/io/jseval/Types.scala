@@ -22,8 +22,5 @@ object TypModule {
   case class TProduct(firstType: Typ, secondType: Typ) extends Typ
 
   case class TGeneric(name: Token) extends Typ
-  
-  case class TClosuse(env:Map[Token, Typ] , placeholder: Token, body: Typ) extends Typ
-
 
 }
