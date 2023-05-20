@@ -187,8 +187,6 @@ class NewTypeInferTest extends munit.FunSuite:
 
   }
 
-
-
   test("infer_type_for_generic_function_2") {
     val input = """
     |let func1 = fun (x: 'T)(convert: 'T -> string) -> convert(x)
@@ -266,7 +264,12 @@ class NewTypeInferTest extends munit.FunSuite:
     val expectedExpr = Binding(
       recursive = false,
       Variable(Literal.Identifier("func1")),
-      variableType = Some(TArrow(TVar(Literal.Identifier("T")), TArrow(TVar(Literal.Identifier("U")), TVar(Literal.Identifier("T"))))),
+      variableType = Some(
+        TArrow(
+          TVar(Literal.Identifier("T")),
+          TArrow(TVar(Literal.Identifier("U")), TVar(Literal.Identifier("T")))
+        )
+      ),
       body = Abs(
         variableName = Variable(Literal.Identifier("x")),
         variableType = Some(TVar(Literal.Identifier("T"))),
@@ -293,4 +296,38 @@ class NewTypeInferTest extends munit.FunSuite:
 
     assertEquals(parserResult.map(_._1.expr), Right(expectedExpr))
     assertEquals(parserResult.map(_._2), Right(TInt))
+  }
+
+  // test type infer for generic function
+  // generic function should have type 'T -> 'U -> ('T -> 'U) -> 'U
+  // where 'T -> 'U is a function
+  // when calling generic function
+  // passing 'T as a string type to the function
+  // passing 'U as a int type to the function
+  // passing a function that takes string and return string
+  // type checker should raise an error
+  test("infer_type_for_generic_function_with_error") {
+    val input = """
+    |let func1: 'T -> 'U -> ('T -> 'U) -> 'U = fun (x: 'T)(y: 'U)(z: 'T -> 'U) -> z(x)
+    |let convert = fun (x: string) -> "string"
+    |let result = func1("test", 5, convert)
+    |in result
+    """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      expr <- ExpressionParser.expression(tokens)
+      outputType <- TypeInfer.infer(expr.expr)
+    } yield (expr, outputType)
+
+    assertEquals(
+      parserResult.map(_._2),
+      Left(
+        CompilerError.IncorrectType(
+          "TArrow(TString,TInt)",
+          Variable(Literal.Identifier("convert")),
+          TArrow(TString, TString)
+        )
+      )
+    )
   }

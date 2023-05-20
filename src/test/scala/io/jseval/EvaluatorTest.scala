@@ -345,7 +345,6 @@ class EvaluatorTest extends munit.FunSuite:
 
     } yield bindExpr
 
-
     val a = parserResult.map(_.expr).getOrElse(LiteralExpr(5))
 
     val result: MyEither[Value] = ExprEval.eval[MyEither](a)
@@ -406,8 +405,28 @@ class EvaluatorTest extends munit.FunSuite:
       bindExpr <- ExpressionParser.expression(tokens)
       value <- ExprEval.eval(bindExpr.expr)
 
-    } yield value 
+    } yield value
 
     assertEquals(parserResult, Right(LiteralValue(54)))
+
+  }
+
+  test("evaluate_generic_functions") {
+
+    val input = """
+    |let func1 = fun (x: 'T)(convert: 'T -> string) -> convert(x)
+    |let intToString = fun (x: int) -> "string"
+    |let result = func1(5, intToString)
+    |in result
+   """.stripMargin
+
+    val parserResult = for {
+      tokens <- Scanner.parse(input)
+      bindExpr <- ExpressionParser.expression(tokens)
+      value <- ExprEval.eval(bindExpr.expr)
+
+    } yield value
+
+    assertEquals(parserResult, Right(LiteralValue("string")))
 
   }
