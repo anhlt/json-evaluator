@@ -191,7 +191,7 @@ class NewTypeInferTest extends munit.FunSuite:
 
   test("infer_type_for_generic_function_2") {
     val input = """
-    |let func1 = fun (x: 'T)(convert: T' -> string) -> convert(x)
+    |let func1 = fun (x: 'T)(convert: 'T -> string) -> convert(x)
     |let intToString = fun (x: int) -> "string"
     |let result = func1(5, intToString)
     |in result
@@ -291,8 +291,6 @@ class NewTypeInferTest extends munit.FunSuite:
       )
     )
 
-
-    // assertEquals(parserResult.map(_._1.expr), Right(expectedExpr))
-
-    assertEquals(parserResult.map(_._2), Right(TString))
+    assertEquals(parserResult.map(_._1.expr), Right(expectedExpr))
+    assertEquals(parserResult.map(_._2), Right(TInt))
   }

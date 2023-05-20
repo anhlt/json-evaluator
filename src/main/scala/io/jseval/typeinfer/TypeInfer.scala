@@ -29,6 +29,25 @@ object TypeInfer {
 
   object Utils {
 
+    // infer generic type , replace TVar by value in env
+    def inferGeneric(typ: Typ, env: TypeEnv): Typ = {
+      typ match {
+        case TVar(name) =>
+          env.get(name) match {
+            case Some(t) => t
+            case None    => typ
+          }
+        case TArrow(argType, bodyType) =>
+          TArrow(inferGeneric(argType, env), inferGeneric(bodyType, env))
+        case TProduct(firstType, secondType) =>
+          TProduct(
+            inferGeneric(firstType, env),
+            inferGeneric(secondType, env)
+          )
+        case _ => typ
+      }
+    }
+
     def asType(v: LiteralType): Typ = {
       v match {
         case x: Int     => TInt
@@ -204,7 +223,6 @@ object TypeInfer {
 
         variableType match {
           case Some(valType) =>
-            println(s"variable: $variable valType : $valType")
             val enclosedEnv = env + (variable.name -> valType)
             infer(body)(me, enclosedEnv).flatMap(bodyType =>
               TArrow(valType, bodyType).pure[F]
@@ -228,16 +246,29 @@ object TypeInfer {
       // example let f = fun x : int = x + 5 in f(3)
       // we need to infer the type of f and 3
       // and then return the type of the body
+      // In case of generic types
+      // let f = fun x : 'T = x + 5 in f(3)
+      // we need to infer the type of f and 3
+      // and then return the type of the body
+      // in this case the type of f will be TArrow('T, TInt)
+      // and the type of 3 will be TInt
+      // so we need to unify the type of the argument with the type of the function
+      // and then return the type of the body
+      // in this case we will get TInt
+
       case App(fn, arg) => {
-        println(s"App for $fn and== $arg")
         for {
           fnType <- infer(fn)
           argType <- infer(arg)
-          _ = println(s" fnType:$fnType, argType:$argType ")
           fnTypeAsArrow <- Utils.asArrow(fnType, fn)
+          genericTypeEnv = fnTypeAsArrow.argType match {
+            case TVar(name) =>
+              env + (name -> argType)
+            case _ => env
+          }
           result <-
             if (Utils.equals(argType, fnTypeAsArrow.argType)) {
-              me.pure(fnTypeAsArrow.bodyType)
+              me.pure(Utils.inferGeneric(fnTypeAsArrow.bodyType, genericTypeEnv))
             } else {
               me.raiseError(
                 CompilerError.IncorrectType(
@@ -267,7 +298,6 @@ object TypeInfer {
             variableAssignment: Expr,
             body: Expr
           ) => {
-        println(s"Binding for $variable, with type: $variableType")
         for {
           inferredType <- {
             val newEnv = if (recursive) {
@@ -278,7 +308,6 @@ object TypeInfer {
 
             infer(variableAssignment)(me, newEnv)
           }
-          _ = println(s"$variable has type: $inferredType")
           typeCheckResult <-
             if (variableType.isDefined) {
               me.pure(Utils.equals(variableType.get, inferredType))
@@ -288,7 +317,6 @@ object TypeInfer {
 
           result <-
             if (typeCheckResult) {
-
               val enclosedEnv = env + (variable.name -> inferredType)
               infer(body)(me, enclosedEnv)
             } else {
