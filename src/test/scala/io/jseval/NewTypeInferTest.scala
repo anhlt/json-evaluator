@@ -331,3 +331,4 @@ class NewTypeInferTest extends munit.FunSuite:
       )
     )
   }
+
