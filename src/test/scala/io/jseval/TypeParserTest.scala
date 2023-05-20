@@ -97,7 +97,7 @@ class TypeParserTest extends munit.FunSuite:
 
 
   // test nested product and arrow type
-  // Int => Boolean * Boolean => String
+  // Int -> Boolean * Boolean -> String
   test("parse_nested_product_and_arrow_type") {
     val tokens = List(
       IntKw,
@@ -125,3 +125,73 @@ class TypeParserTest extends munit.FunSuite:
       )
     )
   }
+
+  // Test generic type
+  // 'a
+  test("parse_generic_type") {
+    val tokens = List(ApostropeToken, Identifier("a"))
+    val result = TypeParser.parseType(tokens)
+    assertEquals(
+      result,
+      Right(
+        TypeParserResult(
+          TVar(Identifier("a")),
+          List()
+        )
+      )
+    )
+  }
+
+
+  
+  // Test generic type with arrow type
+  // 'a -> 'b
+  test("parse_generic_type_with_arrow_type") {
+    val tokens = List(ApostropeToken, Identifier("a"), ArrowToken, ApostropeToken, Identifier("b"))
+    val result = TypeParser.parseType(tokens)
+    assertEquals(
+      result,
+      Right(
+        TypeParserResult(
+          TArrow(
+            TVar(Identifier("a")),
+            TVar(Identifier("b"))
+          ),
+          List()
+        )
+      )
+    )
+  }
+
+  // test type with parenthesis
+  // Int -> (Int -> Boolean) -> Boolean
+  test("parse_type_with_parenthesis") {
+    val tokens = List(
+      IntKw,
+      ArrowToken,
+      LeftParenToken,
+      IntKw,
+      ArrowToken,
+      BooleanKw,
+      RightParenToken,
+      ArrowToken,
+      BooleanKw
+    )
+    val result = TypeParser.parseType(tokens)
+    assertEquals(
+      result,
+      Right(
+        TypeParserResult(
+          TArrow(
+            TInt,
+            TArrow(
+              TArrow(TInt, TBoolean),
+              TBoolean
+            )
+          ),
+          List()
+        )
+      )
+    )
+  }
+

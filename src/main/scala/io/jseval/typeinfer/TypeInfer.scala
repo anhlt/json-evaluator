@@ -7,13 +7,8 @@ import cats._
 import cats.implicits._
 import io.jseval.CompilerError
 import io.jseval.Expression.TupleExpr
-import io.jseval.TypModule.TProduct
-import io.jseval.TypModule.TInt
-import io.jseval.TypModule.TDouble
-import io.jseval.TypModule.TString
-import io.jseval.TypModule.TBoolean
+import io.jseval.TypModule._
 import io.jseval.LiteralType
-import io.jseval.TypModule.TArrow
 import io.jseval.Expression.LiteralExpr
 import io.jseval.Expression.Buildin
 import io.jseval.Expression.BuildinModule.BuildinFn.ComparisonFn
@@ -34,6 +29,25 @@ object TypeInfer {
 
   object Utils {
 
+    // infer generic type , replace TVar by value in env
+    def inferGeneric(typ: Typ, env: TypeEnv): Typ = {
+      typ match {
+        case TVar(name) =>
+          env.get(name) match {
+            case Some(t) => t
+            case None    => typ
+          }
+        case TArrow(argType, bodyType) =>
+          TArrow(inferGeneric(argType, env), inferGeneric(bodyType, env))
+        case TProduct(firstType, secondType) =>
+          TProduct(
+            inferGeneric(firstType, env),
+            inferGeneric(secondType, env)
+          )
+        case _ => typ
+      }
+    }
+
     def asType(v: LiteralType): Typ = {
       v match {
         case x: Int     => TInt
@@ -48,8 +62,10 @@ object TypeInfer {
         expr: Expr
     )(implicit me: MonadError[F, CompilerError]): F[TArrow] = {
       typ match {
-        case x: TArrow => me.pure(x)
-        case _ => me.raiseError(CompilerError.IncorrectType("TArrow", expr, typ))
+        case x: TArrow                                => me.pure(x)
+        case TClosuse(env, placeholder, body: TArrow) => body.pure[F]
+        case _ =>
+          me.raiseError(CompilerError.IncorrectType("TArrow", expr, typ))
       }
 
     }
@@ -60,7 +76,8 @@ object TypeInfer {
     )(implicit me: MonadError[F, CompilerError]): F[Typ] = {
       typ match {
         case TBoolean => me.pure(TBoolean)
-        case _ => me.raiseError(CompilerError.IncorrectType("TBoolean", expr, typ))
+        case _ =>
+          me.raiseError(CompilerError.IncorrectType("TBoolean", expr, typ))
       }
     }
 
@@ -70,6 +87,7 @@ object TypeInfer {
         case (TString, TString)   => true
         case (TBoolean, TBoolean) => true
         case (TDouble, TDouble)   => true
+        case (_, t2: TVar)        => true
         case (t1: TArrow, t2: TArrow) =>
           equals(t1.argType, t2.argType) && equals(t1.bodyType, t2.bodyType)
         case (t1: TProduct, t2: TProduct) =>
@@ -196,6 +214,7 @@ object TypeInfer {
 
       // The type of a function will be TArrow
       // fun x : int = x + 5
+      // fun x : 'T  = x + 5
       // we need to add the type of the variable to the environment
       // so that we can use it in the body
       // then we need to infer the type of the body
@@ -206,9 +225,7 @@ object TypeInfer {
           case Some(valType) =>
             val enclosedEnv = env + (variable.name -> valType)
             infer(body)(me, enclosedEnv).flatMap(bodyType =>
-              me.pure(
-                TArrow(valType, bodyType)
-              )
+              TArrow(valType, bodyType).pure[F]
             )
           case None =>
             me.raiseError(CompilerError.MissingTypeAnnotation(variable.name))
@@ -229,14 +246,29 @@ object TypeInfer {
       // example let f = fun x : int = x + 5 in f(3)
       // we need to infer the type of f and 3
       // and then return the type of the body
+      // In case of generic types
+      // let f = fun x : 'T = x + 5 in f(3)
+      // we need to infer the type of f and 3
+      // and then return the type of the body
+      // in this case the type of f will be TArrow('T, TInt)
+      // and the type of 3 will be TInt
+      // so we need to unify the type of the argument with the type of the function
+      // and then return the type of the body
+      // in this case we will get TInt
+
       case App(fn, arg) => {
         for {
           fnType <- infer(fn)
           argType <- infer(arg)
           fnTypeAsArrow <- Utils.asArrow(fnType, fn)
+          genericTypeEnv = fnTypeAsArrow.argType match {
+            case TVar(name) =>
+              env + (name -> argType)
+            case _ => env
+          }
           result <-
             if (Utils.equals(argType, fnTypeAsArrow.argType)) {
-              me.pure(fnTypeAsArrow.bodyType)
+              me.pure(Utils.inferGeneric(fnTypeAsArrow.bodyType, genericTypeEnv))
             } else {
               me.raiseError(
                 CompilerError.IncorrectType(
@@ -275,7 +307,6 @@ object TypeInfer {
             }
 
             infer(variableAssignment)(me, newEnv)
-
           }
           typeCheckResult <-
             if (variableType.isDefined) {
@@ -286,7 +317,6 @@ object TypeInfer {
 
           result <-
             if (typeCheckResult) {
-
               val enclosedEnv = env + (variable.name -> inferredType)
               infer(body)(me, enclosedEnv)
             } else {

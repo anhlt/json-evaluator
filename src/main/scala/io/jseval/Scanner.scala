@@ -92,6 +92,7 @@ object Scanner {
       Operator.PlusToken.parse,
       Operator.SemicolonToken.parse,
       Operator.StarToken.parse,
+      Operator.ApostropeToken.parse,
       bangEqualOrBang,
       equalEqualOrEqual,
       greaterEqualOrGreater,

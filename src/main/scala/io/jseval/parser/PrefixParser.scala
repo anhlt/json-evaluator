@@ -54,6 +54,7 @@ case object LiteralParser extends PrefixExprParser {
   IdentifierParser is the parser for identifier.
   - It could be simple variable
   - It could be function call caller(arg, *)
+  - It could be function call caller['T, *](arg, *)
  */
 case object IdentifierParser extends PrefixExprParser {
   def parse[F[_]](tokens: List[Token])(implicit
@@ -314,11 +315,11 @@ case object LetBindingPrefixParser extends PrefixExprParser {
   }
 
   /*
-  / parsing variable after let keyword
-  / it could be either
-  / 1. variable with no type
-  / 2. variable with type
-   */
+  * parsing variable after let keyword
+  * it could be either
+  * 1. variable with no type
+  * 2. variable with type
+  */
   def letVariable[F[_]](
       tokens: List[Token]
   )(implicit

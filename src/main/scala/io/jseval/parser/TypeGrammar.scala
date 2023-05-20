@@ -20,7 +20,10 @@ object TypeGrammar extends BaseGrammar[Typ] {
         PrimaryParser.pure[F]
       case Keyword.Unit :: rest =>
         PrimaryParser.pure[F]
-
+      case Operator.ApostropeToken :: rest =>
+        GenericTypeParser.pure[F]
+      case Operator.LeftParenToken:: rest =>
+        ParenthesisTypeParser.pure[F]
       case _ => a.raiseError(CompilerError.NoExpectedParser(tokens))
     }
   }
