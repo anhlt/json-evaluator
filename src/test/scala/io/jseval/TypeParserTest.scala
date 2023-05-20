@@ -135,7 +135,7 @@ class TypeParserTest extends munit.FunSuite:
       result,
       Right(
         TypeParserResult(
-          TVar(Identifier("a")),
+          TGeneric(Identifier("a")),
           List()
         )
       )
@@ -154,8 +154,8 @@ class TypeParserTest extends munit.FunSuite:
       Right(
         TypeParserResult(
           TArrow(
-            TVar(Identifier("a")),
-            TVar(Identifier("b"))
+            TGeneric(Identifier("a")),
+            TGeneric(Identifier("b"))
           ),
           List()
         )

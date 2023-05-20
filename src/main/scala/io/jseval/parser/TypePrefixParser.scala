@@ -32,7 +32,7 @@ case object PrimaryParser extends TypePrefixParser {
   Example: 'a
   The ApostropeToken is a special character that is used to denote a generic type
   The parser will parse the type parameter and return the type
-  Example: 'a -> TVar("a")
+  Example: 'a -> TGeneric("a")
 */
 case object GenericTypeParser extends TypePrefixParser {
   def parse[F[_]](tokens: List[Token])(implicit
@@ -40,7 +40,7 @@ case object GenericTypeParser extends TypePrefixParser {
   ): F[ParserResult[Typ]] = {
     tokens match {
       case Operator.ApostropeToken :: Literal.Identifier(name) :: rest =>
-        TypeParserResult(TVar(Literal.Identifier(name)), rest).pure[F]
+        TypeParserResult(TGeneric(Literal.Identifier(name)), rest).pure[F]
       case _ => me.raiseError(CompilerError.ExpectExpression(tokens))
     }
   }

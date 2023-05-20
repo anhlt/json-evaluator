@@ -29,10 +29,10 @@ object TypeInfer {
 
   object Utils {
 
-    // infer generic type , replace TVar by value in env
+    // infer generic type , replace TGeneric by value in env
     def inferGeneric(typ: Typ, env: TypeEnv): Typ = {
       typ match {
-        case TVar(name) =>
+        case TGeneric(name) =>
           env.get(name) match {
             case Some(t) => t
             case None    => typ
@@ -87,7 +87,7 @@ object TypeInfer {
         case (TString, TString)   => true
         case (TBoolean, TBoolean) => true
         case (TDouble, TDouble)   => true
-        case (_, t2: TVar)        => true
+        case (_, t2: TGeneric)        => true
         case (t1: TArrow, t2: TArrow) =>
           equals(t1.argType, t2.argType) && equals(t1.bodyType, t2.bodyType)
         case (t1: TProduct, t2: TProduct) =>
@@ -262,7 +262,7 @@ object TypeInfer {
           argType <- infer(arg)
           fnTypeAsArrow <- Utils.asArrow(fnType, fn)
           genericTypeEnv = fnTypeAsArrow.argType match {
-            case TVar(name) =>
+            case TGeneric(name) =>
               env + (name -> argType)
             case _ => env
           }

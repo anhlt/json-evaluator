@@ -207,10 +207,10 @@ class NewTypeInferTest extends munit.FunSuite:
       variableType = None,
       body = Abs(
         variableName = Variable(Literal.Identifier("x")),
-        variableType = Some(TVar(Literal.Identifier("T"))),
+        variableType = Some(TGeneric(Literal.Identifier("T"))),
         body = Abs(
           variableName = Variable(Literal.Identifier("convert")),
-          variableType = Some(TArrow(TVar(Literal.Identifier("T")), TString)),
+          variableType = Some(TArrow(TGeneric(Literal.Identifier("T")), TString)),
           body = App(
             Variable(Literal.Identifier("convert")),
             Variable(Literal.Identifier("x"))
@@ -266,16 +266,16 @@ class NewTypeInferTest extends munit.FunSuite:
       Variable(Literal.Identifier("func1")),
       variableType = Some(
         TArrow(
-          TVar(Literal.Identifier("T")),
-          TArrow(TVar(Literal.Identifier("U")), TVar(Literal.Identifier("T")))
+          TGeneric(Literal.Identifier("T")),
+          TArrow(TGeneric(Literal.Identifier("U")), TGeneric(Literal.Identifier("T")))
         )
       ),
       body = Abs(
         variableName = Variable(Literal.Identifier("x")),
-        variableType = Some(TVar(Literal.Identifier("T"))),
+        variableType = Some(TGeneric(Literal.Identifier("T"))),
         body = Abs(
           variableName = Variable(Literal.Identifier("y")),
-          variableType = Some(TVar(Literal.Identifier("U"))),
+          variableType = Some(TGeneric(Literal.Identifier("U"))),
           body = Variable(Literal.Identifier("x"))
         )
       ),
