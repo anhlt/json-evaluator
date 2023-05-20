@@ -29,6 +29,8 @@ enum CompilerError(msg: String):
   case UnaryTypeException(fn: BuildinFn.UnaryFn, exprType: Typ) extends CompilerError(s"Type mismatch")
   case IncorrectType(expectedType: String, expr: Expr, givenType: Typ) extends CompilerError(s"Type mismatch: $expr expected $expectedType, but given $givenType")
 
+  case GenericTypeAlreadyDefined(token: Token) extends CompilerError(s"GenericTypeAlreadyDefined $token")
+
 
 enum TypeError(msg: String) :
   case WrongType(expectedType: Typ, found: Typ) extends TypeError(s"Expected $expectedType but found $found")

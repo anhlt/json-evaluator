@@ -29,6 +29,37 @@ object TypeInfer {
 
   object Utils {
 
+    // function to create type env while apply specific type to generic
+    // it should cover the case for TArror, TProduct
+    // return th TypeEnv with the generic type replaced by the value
+    def applyTypeToGeneric[F[_]](
+        typ: Typ,
+        value: Typ,
+        env: TypeEnv
+    )(implicit me: MonadError[F, CompilerError]): F[TypeEnv] = {
+      typ match {
+        case TGeneric(name) =>
+          if (env.contains(name)) {
+            me.raiseError(CompilerError.GenericTypeAlreadyDefined(name))
+          } else {
+            me.pure(env + (name -> value))
+          }
+        case TArrow(argType, bodyType) =>
+          for {
+            newEnv <- applyTypeToGeneric(argType, value, env)
+            result <- applyTypeToGeneric(bodyType, value, newEnv)
+          } yield result
+
+        case TProduct(firstType, secondType) =>
+          for {
+            newEnv <- applyTypeToGeneric(firstType, value, env)
+            result <- applyTypeToGeneric(secondType, value, newEnv)
+          } yield result
+
+        case _ => env.pure[F]
+      }
+    }
+
     // infer generic type , replace TGeneric by value in env
     def inferGeneric(typ: Typ, env: TypeEnv): Typ = {
       typ match {
@@ -62,8 +93,7 @@ object TypeInfer {
         expr: Expr
     )(implicit me: MonadError[F, CompilerError]): F[TArrow] = {
       typ match {
-        case x: TArrow                                => me.pure(x)
-        case TClosuse(env, placeholder, body: TArrow) => body.pure[F]
+        case x: TArrow => me.pure(x)
         case _ =>
           me.raiseError(CompilerError.IncorrectType("TArrow", expr, typ))
       }
@@ -87,7 +117,7 @@ object TypeInfer {
         case (TString, TString)   => true
         case (TBoolean, TBoolean) => true
         case (TDouble, TDouble)   => true
-        case (_, t2: TGeneric)        => true
+        case (_, t2: TGeneric)    => true
         case (t1: TArrow, t2: TArrow) =>
           equals(t1.argType, t2.argType) && equals(t1.bodyType, t2.bodyType)
         case (t1: TProduct, t2: TProduct) =>
@@ -261,14 +291,17 @@ object TypeInfer {
           fnType <- infer(fn)
           argType <- infer(arg)
           fnTypeAsArrow <- Utils.asArrow(fnType, fn)
-          genericTypeEnv = fnTypeAsArrow.argType match {
-            case TGeneric(name) =>
-              env + (name -> argType)
-            case _ => env
-          }
+          genericTypeEnv <- Utils.applyTypeToGeneric(
+            fnTypeAsArrow.argType,
+            argType,
+            env
+          )
+
           result <-
             if (Utils.equals(argType, fnTypeAsArrow.argType)) {
-              me.pure(Utils.inferGeneric(fnTypeAsArrow.bodyType, genericTypeEnv))
+              me.pure(
+                Utils.inferGeneric(fnTypeAsArrow.bodyType, genericTypeEnv)
+              )
             } else {
               me.raiseError(
                 CompilerError.IncorrectType(
